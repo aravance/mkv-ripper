@@ -1,0 +1,6 @@
+github.com/farjump/go-libudev v0.0.0-20171109190736-8b0739cd6d0b h1:zMD1x/LqZnujKnuquz9rbl/P6HZomUj0YXD/yxEAXXM=
+github.com/farjump/go-libudev v0.0.0-20171109190736-8b0739cd6d0b/go.mod h1:yzTdDrJ3rMj/15/ayeyb6HhTtu7VClWfiarB328Iew0=
+github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 h1:smvLGU3obGU5kny71BtE/ibR0wIXRUiRFDmSn0Nxz1E=
+github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1/go.mod h1:fP/NdyhRVOv09PLRbVXrSqHhrfQypdZwgE2L4h2U5C8=
+golang.org/x/sys v0.6.0 h1:MVltZSvRTcU2ljQOhs94SXPftV6DCNnZViHeQps87pQ=
+golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
