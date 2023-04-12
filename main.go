@@ -1,126 +1,70 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"log"
 	"os"
-	"os/exec"
 	"os/signal"
-	"strconv"
-	"strings"
 )
+
+const defaultPath = "/var/rip"
 
 type Device interface {
 	Label() string
-	Dev() string
+	Device() string
 	Type() string
 	Available() bool
 }
 
-type Rip struct {
+type RipRequest struct {
 	path string
 	name string
 	year string
 	dev  Device
 }
 
-type DeviceHandler interface {
-	HandleDevice(dev Device)
-}
-
-type RipStatus struct {
-	title   string
-	channel string
-	current int
-	max     int
-}
-
-func ripDisk(r Rip) error {
-	dev := fmt.Sprintf("%s:%s", r.dev.Type(), r.dev.Dev())
-	dir, err := os.MkdirTemp(r.path, r.name)
+func main() {
+	logfile, err := os.OpenFile("mkv.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
-		fmt.Println("Failed to make temp directory")
-		return err
+		log.Fatalln("Failed to open log file", err)
 	}
-	defer os.RemoveAll(dir)
-	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "mkv", dev, "0", dir)
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("Failed to call makemkvcon")
-		return err
-	}
-	scanner := bufio.NewScanner(out)
-	go cmd.Start()
+	log.SetOutput(logfile)
 
-	f, err := os.CreateTemp(".", r.name)
-	if err != nil {
-		fmt.Println("Failed to create log file")
-		return err
-	}
-	defer f.Close()
-	defer os.Remove(f.Name())
+	devchan := make(chan Device, 10)
+	ripchan := make(chan RipRequest, 10)
 
-	var title string
-	var channel string
-	var current int
-	var max int
-	for scanner.Scan() {
-		line := scanner.Text()
-		f.WriteString(line + "\n")
-		prefix, content, _ := strings.Cut(line, ":")
-		parts := strings.Split(content, ",")
-		switch prefix {
-		case "PRGT":
-			title = parts[2]
-		case "PRGC":
-			channel = parts[2]
-		case "PRGV":
-			current, _ = strconv.Atoi(parts[0])
-			max, _ = strconv.Atoi(parts[2])
-			status := RipStatus{
-				title:   title,
-				channel: channel,
-				current: current,
-				max:     max,
+	listener := NewUdevListener(devchan)
+	listener.Start()
+	defer listener.Stop()
+
+	handler := NewCliDeviceHandler(devchan, ripchan)
+	handler.Start()
+	defer handler.Stop()
+
+	go func() {
+		for rip := range ripchan {
+			log.Printf("Rip: %+v\n", rip)
+			dir, err := os.MkdirTemp(defaultPath, rip.name)
+			if err != nil {
+				log.Println("Failed to make temp directory")
+			} else {
+				log.Println("Created", dir)
+				statchan, _ := ripDevice(dir, rip.name, rip.dev.Device(), rip.dev.Type())
+				for stat := range statchan {
+					fmt.Println(stat)
+				}
+				log.Println("Done")
+				os.RemoveAll(dir)
+				log.Println("Deleted", dir)
 			}
-			fmt.Println(status)
 		}
-	}
-	fmt.Println("Done.")
-	return nil
-}
+	}()
 
-func waitForShutdown() {
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)
 	<-sigchan
 
-	fmt.Println("Shutting down")
-}
-
-const defaultPath = "/var/rip"
-
-func main() {
-	devchan := make(chan Device)
-	ripchan := make(chan Rip)
-
-	u := NewUdevListener(devchan)
-	go u.Start()
-	defer u.Stop()
-
-	i := NewCliDeviceHandler(defaultPath, devchan, ripchan)
-	go func() {
-		for dev := range devchan {
-			i.HandleDevice(dev)
-		}
-	}()
-
-	go func() {
-		for rip := range ripchan {
-			fmt.Printf("Rip: %+v\n", rip)
-			ripDisk(rip)
-		}
-	}()
-
-	waitForShutdown()
+	log.Println("Shutting down")
+	close(devchan)
+	close(ripchan)
 }

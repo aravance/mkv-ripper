@@ -4,37 +4,58 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sync"
 )
 
 type CliDeviceHandler struct {
-	path string
-	in   <-chan Device
-	out  chan Rip
+	in      <-chan Device
+	out     chan<- RipRequest
+	mutex   sync.Mutex
+	started bool
 }
 
-func NewCliDeviceHandler(path string, in <-chan Device, out chan Rip) *CliDeviceHandler {
+func NewCliDeviceHandler(in <-chan Device, out chan<- RipRequest) *CliDeviceHandler {
 	return &CliDeviceHandler{
-		path: path,
-		in:   in,
-		out:  out,
+		in:      in,
+		out:     out,
+		mutex:   sync.Mutex{},
+		started: false,
 	}
 }
 
-func (h *CliDeviceHandler) HandleDevice(dev Device) {
-	scanner := bufio.NewScanner(os.Stdin)
-	if dev.Available() {
-		fmt.Println("Found new device:", dev.Dev(), "name:", dev.Label())
-		fmt.Println("Name?")
-		scanner.Scan()
-		name := scanner.Text()
-		fmt.Println("Year?")
-		scanner.Scan()
-		year := scanner.Text()
-		h.out <- Rip{
-			path: h.path,
-			name: name,
-			year: year,
-			dev:  dev,
-		}
+func (h *CliDeviceHandler) Start() {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if h.started {
+		return
 	}
+	h.started = true
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for dev := range h.in {
+			if dev.Available() {
+				fmt.Println("Found new device:", dev.Device(), "name:", dev.Label())
+				fmt.Println("Name?")
+				scanner.Scan()
+				name := scanner.Text()
+				fmt.Println("Year?")
+				scanner.Scan()
+				year := scanner.Text()
+				h.out <- RipRequest{
+					name: name,
+					year: year,
+					dev:  dev,
+				}
+			}
+		}
+
+	}()
+}
+
+func (h *CliDeviceHandler) Stop() {
+}
+
+func handleDevice(dev Device) *RipRequest {
+	return nil
 }
