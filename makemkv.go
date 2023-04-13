@@ -3,10 +3,62 @@ package main
 import (
 	"bufio"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 )
+
+type Device interface {
+	Label() string
+	Device() string
+	Type() string
+	Available() bool
+}
+
+type IsoDevice struct {
+	label string
+	path  string
+}
+
+func (d *IsoDevice) Label() string {
+	return d.label
+}
+
+func (d *IsoDevice) Device() string {
+	return d.path
+}
+
+func (d *IsoDevice) Type() string {
+	return "iso"
+}
+
+func (d *IsoDevice) Available() bool {
+	info, err := os.Stat(d.path)
+	return err != nil && !info.IsDir()
+}
+
+type FileDevice struct {
+	label string
+	path  string
+}
+
+func (d *FileDevice) Label() string {
+	return d.label
+}
+
+func (d *FileDevice) Device() string {
+	return d.path
+}
+
+func (d *FileDevice) Type() string {
+	return "file"
+}
+
+func (d *FileDevice) Available() bool {
+	info, err := os.Stat(d.path)
+	return err != nil && info.IsDir()
+}
 
 type RipStatus struct {
 	title   string
@@ -15,8 +67,8 @@ type RipStatus struct {
 	max     int
 }
 
-func ripDevice(path string, name string, device string, deviceType string) (chan RipStatus, error) {
-	dev := deviceType + ":" + device
+func ripDevice(device Device, path string) (chan RipStatus, error) {
+	dev := device.Type() + ":" + device.Device()
 	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "mkv", dev, "all", path)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -25,7 +77,7 @@ func ripDevice(path string, name string, device string, deviceType string) (chan
 	}
 	statuschan := make(chan RipStatus)
 	go func() {
-		log.Println("Ripping", name)
+		log.Println("Ripping")
 		scanner := bufio.NewScanner(out)
 		cmd.Start()
 
@@ -54,7 +106,7 @@ func ripDevice(path string, name string, device string, deviceType string) (chan
 				}
 			}
 		}
-		log.Println("Finished ripping", name)
+		log.Println("Finished ripping")
 		close(statuschan)
 	}()
 	return statuschan, nil
