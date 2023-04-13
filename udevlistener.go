@@ -33,7 +33,7 @@ func (t *UdevDevice) Type() string {
 }
 
 func (t *UdevDevice) Available() bool {
-	return t.udev != nil
+	return t.udev != nil && t.udev.PropertyValue("SYSTEMD_READY") != "0"
 }
 
 type UdevListener struct {

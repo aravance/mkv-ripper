@@ -16,13 +16,6 @@ import (
 
 const defaultPath = "/var/rip"
 
-type Device interface {
-	Label() string
-	Device() string
-	Type() string
-	Available() bool
-}
-
 type RipRequest struct {
 	path string
 	name string
@@ -56,7 +49,7 @@ func main() {
 				log.Println("Failed to make temp directory")
 			} else {
 				log.Println("Created", dir)
-				statchan, _ := ripDevice(dir, rip.name, rip.dev.Device(), rip.dev.Type())
+				statchan, _ := ripDevice(rip.dev, dir)
 				for stat := range statchan {
 					fmt.Println(stat)
 				}
