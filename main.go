@@ -5,11 +5,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -23,6 +21,26 @@ type RipRequest struct {
 	dev  Device
 }
 
+type MovieDetails struct {
+	name string
+	year string
+}
+
+func handleDevice(device Device) *MovieDetails {
+	scanner := bufio.NewScanner(os.Stdin)
+	if device.Available() {
+		fmt.Println("Found new device:", device.Device(), "name:", device.Label())
+		fmt.Println("Name?")
+		scanner.Scan()
+		name := scanner.Text()
+		fmt.Println("Year?")
+		scanner.Scan()
+		year := scanner.Text()
+		return &MovieDetails{name, year}
+	}
+	return nil
+}
+
 func main() {
 	logfile, err := os.OpenFile("mkv.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
@@ -30,55 +48,32 @@ func main() {
 	}
 	log.SetOutput(logfile)
 
-	devchan := make(chan Device, 10)
-	ripchan := make(chan RipRequest, 10)
+	devchan := make(chan Device)
 
 	listener := NewUdevListener(devchan)
 	listener.Start()
 	defer listener.Stop()
 
-	handler := NewCliDeviceHandler(devchan, ripchan)
-	handler.Start()
-	defer handler.Stop()
+	handler := NewCliDeviceHandler()
+	path := defaultPath
 
 	go func() {
-		for rip := range ripchan {
-			log.Printf("Rip: %+v\n", rip)
-			dir, err := os.MkdirTemp(defaultPath, "rip")
-			if err != nil {
-				log.Println("Failed to make temp directory")
+		for dev := range devchan {
+			if dev.Available() {
+				go func(device Device) {
+					workflow := NewWorkflow(handler, device, path)
+					workflow.Start()
+				}(dev)
 			} else {
-				log.Println("Created", dir)
-				statchan, _ := ripDevice(rip.dev, dir)
-				for stat := range statchan {
-					fmt.Println(stat)
-				}
-				log.Println("Done")
-				files, err := ioutil.ReadDir(dir)
-				if err != nil {
-					log.Println("Error opening dir", dir)
-				} else {
-					for _, file := range files {
-						name := fmt.Sprintf("%s (%s)", rip.name, rip.year)
-						oldfile := filepath.Join(dir, file.Name())
-						newdir := filepath.Join(defaultPath, name)
-						newfile := filepath.Join(newdir, name+".mkv")
-						os.Mkdir(newdir, 0775)
-						os.Rename(oldfile, newfile)
-
-						shasum, _ := shasum(newfile)
-						shafile := filepath.Join(defaultPath, "Movies.sha256")
-						path := fmt.Sprintf("Movies/%s/%s.mkv", name, name)
-						addShasum(shafile, shasum, path)
-
-						log.Printf("%s  Movies/%s/%s.mkv\n", shasum, name, name)
-					}
-				}
-				os.RemoveAll(dir)
-				log.Println("Deleted", dir)
+				log.Println("Unavailable device", dev)
 			}
 		}
 	}()
+
+	devchan <- &FileDevice{
+		label: "PRINCE_OF_EGYPT",
+		path:  "/build/movies/prince_of_egypt",
+	}
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)
@@ -86,7 +81,6 @@ func main() {
 
 	log.Println("Shutting down")
 	close(devchan)
-	close(ripchan)
 }
 
 func shasum(file string) (string, error) {
