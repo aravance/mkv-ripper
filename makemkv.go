@@ -35,7 +35,7 @@ func (d *IsoDevice) Type() string {
 
 func (d *IsoDevice) Available() bool {
 	info, err := os.Stat(d.path)
-	return err != nil && !info.IsDir()
+	return err == nil && !info.IsDir()
 }
 
 type FileDevice struct {
@@ -57,7 +57,7 @@ func (d *FileDevice) Type() string {
 
 func (d *FileDevice) Available() bool {
 	info, err := os.Stat(d.path)
-	return err != nil && info.IsDir()
+	return err == nil && info.IsDir()
 }
 
 type RipStatus struct {
