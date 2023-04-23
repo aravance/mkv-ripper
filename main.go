@@ -70,11 +70,6 @@ func main() {
 		}
 	}()
 
-	devchan <- &FileDevice{
-		label: "PRINCE_OF_EGYPT",
-		path:  "/build/movies/prince_of_egypt",
-	}
-
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)
 	<-sigchan
