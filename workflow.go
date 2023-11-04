@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +11,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type DeviceHandler interface {
@@ -47,78 +51,53 @@ func (w *Workflow) Start() {
 			log.Println("Error ripping device", err)
 			return
 		}
-		logchan := make(chan *RipStatus, 100000)
+		var wg sync.WaitGroup
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for status := range statchan {
 				w.status = &status
-				select {
-				case logchan <- &status:
-				default:
-				}
 			}
-			close(logchan)
 		}()
 		details := w.deviceHandler.HandleDevice(w.device)
 
 		log.Printf("Rip: %+v\n", details)
 		log.Println("Created", w.path)
 
-		var progress int = 0
-		var title string = ""
-		var wait float64 = 200
-		for status := range logchan {
-			curr := 100 * status.current / status.max
-			if title != status.title {
-				fmt.Println()
-				fmt.Println(status.title)
-				title = status.title
-				progress = 0
-				wait = 200
-			} else if curr > progress {
-				fmt.Print(".", curr)
-				progress = curr
-				wait = 200
-			} else if curr < 100 {
-				fmt.Print(".")
-				wait = math.Min(2 * wait, 2000)
-				time.Sleep(time.Duration(int64(wait) * time.Millisecond.Milliseconds()))
-			}
-		}
+		wg.Wait()
 		log.Println("Done")
 		if files, err := ioutil.ReadDir(dir); err != nil {
 			log.Println("Error opening dir", dir)
 		} else {
-			fullname := fmt.Sprintf("%s (%s)", details.name, details.year)
-			if len(files) > 1 {
-				log.Println("Too many files ripped")
-				newdir := filepath.Join(w.path, "." + fullname)
-				os.Mkdir(newdir, 0755)
-				var i int = 1
-				for _, file := range files {
-					oldfile := filepath.Join(dir, file.Name())
-					newfile := filepath.Join(newdir, fmt.Sprintf("%s [%d].mkv", fullname, i))
-					os.Rename(oldfile, newfile)
-					i++
+			newdir := filepath.Join(w.path, ".input")
+			if stat, err := os.Stat(newdir); errors.Is(err, os.ErrNotExist) {
+				if err := os.Mkdir(newdir, 0755); err != nil {
+					log.Fatal(err)
+					return
 				}
-			} else {
-				for _, file := range files { 
-					oldfile := filepath.Join(dir, file.Name())
-					newdir := filepath.Join(w.path, fullname)
-					newfile := filepath.Join(newdir, fullname+".mkv")
-					os.Mkdir(newdir, 0775)
-					os.Rename(oldfile, newfile)
+			} else if !stat.IsDir() {
+				log.Fatal(".input is not a directory")
+				return
+			}
 
-					shasum, err := shasum(newfile)
-					if err != nil {
-						log.Println("Error running shasum", err)
-						return
-					}
-					shafile := filepath.Join(defaultPath, "Movies.sha256")
-					path := fmt.Sprintf("%s/%s.mkv", fullname, fullname)
-					addShasum(shafile, shasum, path)
+			var sums map[string]string
+			for _, file := range files {
+				oldfile := filepath.Join(dir, file.Name())
+				u := uuid.New()
+				newfile := filepath.Join(newdir, fmt.Sprintf("%s.mkv", u))
+				os.Rename(oldfile, newfile)
+				sums[u.String()], _ = shasum(newfile)
+			}
 
-					log.Printf("%s  %s/%s.mkv\n", shasum, fullname, fullname)
-				}
+			content := map[string]interface{}{
+				"name":  details.name,
+				"year":  details.year,
+				"files": sums,
+			}
+			newfile := filepath.Join(newdir, uuid.New().String()+".in")
+			bytes, _ := json.Marshal(content)
+			if err := os.WriteFile(newfile, bytes, 0664); err != nil {
+				log.Fatal(err)
 			}
 		}
 	})

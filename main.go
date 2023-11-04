@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"crypto/sha256"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -76,18 +74,6 @@ func main() {
 
 	log.Println("Shutting down")
 	close(devchan)
-}
-
-func shasum(file string) (string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	h := sha256.New()
-	io.Copy(h, f)
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
 func readSums(file string) map[string]string {
