@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type DeviceHandler interface {
@@ -45,45 +47,78 @@ func (w *Workflow) Start() {
 			log.Println("Error ripping device", err)
 			return
 		}
+		logchan := make(chan *RipStatus, 100000)
 		go func() {
 			for status := range statchan {
 				w.status = &status
+				select {
+				case logchan <- &status:
+				default:
+				}
 			}
+			close(logchan)
 		}()
 		details := w.deviceHandler.HandleDevice(w.device)
 
 		log.Printf("Rip: %+v\n", details)
 		log.Println("Created", w.path)
-		for stat := range statchan {
-			fmt.Println(stat)
+
+		var progress int = 0
+		var title string = ""
+		var wait float64 = 200
+		for status := range logchan {
+			curr := 100 * status.current / status.max
+			if title != status.title {
+				fmt.Println()
+				fmt.Println(status.title)
+				title = status.title
+				progress = 0
+				wait = 200
+			} else if curr > progress {
+				fmt.Print(".", curr)
+				progress = curr
+				wait = 200
+			} else if curr < 100 {
+				fmt.Print(".")
+				wait = math.Min(2 * wait, 2000)
+				time.Sleep(time.Duration(int64(wait) * time.Millisecond.Milliseconds()))
+			}
 		}
 		log.Println("Done")
 		if files, err := ioutil.ReadDir(dir); err != nil {
 			log.Println("Error opening dir", dir)
 		} else {
+			fullname := fmt.Sprintf("%s (%s)", details.name, details.year)
 			if len(files) > 1 {
-				// TODO identify files
 				log.Println("Too many files ripped")
-				return
-			}
-			for _, file := range files {
-				fullname := fmt.Sprintf("%s (%s)", details.name, details.year)
-				oldfile := filepath.Join(dir, file.Name())
-				newdir := filepath.Join(w.path, fullname)
-				newfile := filepath.Join(newdir, fullname+".mkv")
-				os.Mkdir(newdir, 0775)
-				os.Rename(oldfile, newfile)
-
-				shasum, err := shasum(newfile)
-				if err != nil {
-					log.Println("Error running shasum", err)
-					return
+				newdir := filepath.Join(w.path, "." + fullname)
+				os.Mkdir(newdir, 0755)
+				var i int = 1
+				for _, file := range files {
+					oldfile := filepath.Join(dir, file.Name())
+					newfile := filepath.Join(newdir, fmt.Sprintf("%s [%d].mkv", fullname, i))
+					os.Rename(oldfile, newfile)
+					i++
 				}
-				shafile := filepath.Join(defaultPath, "Movies.sha256")
-				path := fmt.Sprintf("Movies/%s/%s.mkv", fullname, fullname)
-				addShasum(shafile, shasum, path)
+			} else {
+				for _, file := range files { 
+					oldfile := filepath.Join(dir, file.Name())
+					newdir := filepath.Join(w.path, fullname)
+					newfile := filepath.Join(newdir, fullname+".mkv")
+					os.Mkdir(newdir, 0775)
+					os.Rename(oldfile, newfile)
 
-				log.Printf("%s  Movies/%s/%s.mkv\n", shasum, fullname, fullname)
+					shasum, err := shasum(newfile)
+					if err != nil {
+						log.Println("Error running shasum", err)
+						return
+					}
+					shafile := filepath.Join(defaultPath, "Movies.sha256")
+					path := fmt.Sprintf("%s/%s.mkv", fullname, fullname)
+					addShasum(shafile, shasum, path)
+
+					log.Printf("%s  %s/%s.mkv\n", shasum, fullname, fullname)
+				}
 			}
 		}
 	})

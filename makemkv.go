@@ -61,15 +61,16 @@ func (d *FileDevice) Available() bool {
 }
 
 type RipStatus struct {
-	title   string
 	channel string
+	title   string
 	current int
+	total   int
 	max     int
 }
 
 func ripDevice(device Device, path string) (chan RipStatus, error) {
 	dev := device.Type() + ":" + device.Device()
-	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "mkv", dev, "all", path)
+	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "--minlength=3600", "mkv", dev, "all", path)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Println("Failed to call makemkvcon")
@@ -83,6 +84,7 @@ func ripDevice(device Device, path string) (chan RipStatus, error) {
 
 		var title string
 		var channel string
+		var total int
 		var current int
 		var max int
 		for scanner.Scan() {
@@ -97,11 +99,13 @@ func ripDevice(device Device, path string) (chan RipStatus, error) {
 				channel = parts[2]
 			case "PRGV":
 				current, _ = strconv.Atoi(parts[0])
+				total, _ = strconv.Atoi(parts[1])
 				max, _ = strconv.Atoi(parts[2])
 				statuschan <- RipStatus{
 					title:   title,
 					channel: channel,
 					current: current,
+					total:   total,
 					max:     max,
 				}
 			}
