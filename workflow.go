@@ -3,14 +3,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -80,23 +77,34 @@ func (w *Workflow) Start() {
 				return
 			}
 
-			var sums map[string]string
+			fileDetails := map[string]interface{}{}
 			for _, file := range files {
 				oldfile := filepath.Join(dir, file.Name())
+				log.Println("Starting shasum for " + oldfile)
+				shasum, err := shasum(oldfile)
+				if err != nil {
+					log.Println("Error in shasum for " + oldfile)
+					continue
+				}
+				log.Println("Shasum " + file.Name() + ":" + shasum)
 				u := uuid.New()
-				newfile := filepath.Join(newdir, fmt.Sprintf("%s.mkv", u))
+				newfile := filepath.Join(newdir, u.String()+".mkv")
 				os.Rename(oldfile, newfile)
-				sums[u.String()], _ = shasum(newfile)
+				fileDetails[u.String()] = map[string]interface{}{
+					"shasum": shasum,
+					"name":   file.Name(),
+				}
 			}
 
 			content := map[string]interface{}{
 				"name":  details.name,
 				"year":  details.year,
-				"files": sums,
+				"files": fileDetails,
 			}
-			newfile := filepath.Join(newdir, uuid.New().String()+".in")
-			bytes, _ := json.Marshal(content)
-			if err := os.WriteFile(newfile, bytes, 0664); err != nil {
+			newfile := filepath.Join(newdir, uuid.New().String()+".json")
+			if bytes, err := json.Marshal(content); err != nil {
+				log.Fatal(err)
+			} else if err := os.WriteFile(newfile, bytes, 0664); err != nil {
 				log.Fatal(err)
 			}
 		}
