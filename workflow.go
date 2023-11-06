@@ -33,6 +33,7 @@ func NewWorkflow(deviceHandler DeviceHandler, device Device, path string) Workfl
 		path:          path,
 		once:          sync.Once{},
 		details:       nil,
+		status:        nil,
 	}
 }
 
@@ -95,13 +96,15 @@ func (w *Workflow) Start() {
 				fileDetails[i] = map[string]interface{}{
 					"shasum": shasum,
 					"name":   file.Name(),
+					"index":  i,
 				}
 			}
 
 			content := map[string]interface{}{
-				"name":  details.name,
-				"year":  details.year,
-				"files": fileDetails,
+				"name":    details.name,
+				"year":    details.year,
+				"variant": details.variant,
+				"files":   fileDetails,
 			}
 			newfile := filepath.Join(newdir, u.String()+".json")
 			if bytes, err := json.Marshal(content); err != nil {

@@ -9,8 +9,9 @@ import (
 const defaultPath = "/var/rip"
 
 type MovieDetails struct {
-	name string
-	year string
+	name    string
+	year    string
+	variant string
 }
 
 func main() {
@@ -49,4 +50,3 @@ func main() {
 	log.Println("Shutting down")
 	close(devchan)
 }
-
