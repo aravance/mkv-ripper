@@ -77,11 +77,14 @@ func ripDevice(device Device, path string) (chan RipStatus, error) {
 		return nil, err
 	}
 	statuschan := make(chan RipStatus)
-	go func() {
-		log.Println("Ripping")
-		scanner := bufio.NewScanner(out)
-		cmd.Start()
 
+	log.Println("Ripping")
+	scanner := bufio.NewScanner(out)
+	if err := cmd.Start(); err != nil {
+		log.Fatalln("Failed to call makemkvcon")
+	}
+
+	go func() {
 		var title string
 		var channel string
 		var total int
@@ -111,6 +114,9 @@ func ripDevice(device Device, path string) (chan RipStatus, error) {
 			}
 		}
 		log.Println("Finished ripping")
+		if err := cmd.Wait(); err != nil {
+			log.Println("Error finishing ripping", err)
+		}
 		close(statuschan)
 	}()
 	return statuschan, nil

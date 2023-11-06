@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func shasum(file string) (string, error) {
+func sha256sum(file string) (string, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return "", err

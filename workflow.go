@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -68,7 +69,7 @@ func (w *Workflow) Start() {
 		} else {
 			newdir := filepath.Join(w.path, ".input")
 			if stat, err := os.Stat(newdir); errors.Is(err, os.ErrNotExist) {
-				if err := os.Mkdir(newdir, 0755); err != nil {
+				if err := os.Mkdir(newdir, 0775); err != nil {
 					log.Fatal(err)
 					return
 				}
@@ -77,20 +78,21 @@ func (w *Workflow) Start() {
 				return
 			}
 
-			fileDetails := map[string]interface{}{}
-			for _, file := range files {
+			fileDetails := make([]interface{}, len(files))
+			u := uuid.New()
+			for i, file := range files {
 				oldfile := filepath.Join(dir, file.Name())
-				log.Println("Starting shasum for " + oldfile)
-				shasum, err := shasum(oldfile)
+				log.Println("Starting sha256sum for " + oldfile)
+				shasum, err := sha256sum(oldfile)
 				if err != nil {
-					log.Println("Error in shasum for " + oldfile)
-					continue
+					log.Println("Error in sha256sum for " + oldfile)
+				} else {
+					log.Println("sha256sum " + file.Name() + ": " + shasum)
 				}
-				log.Println("Shasum " + file.Name() + ":" + shasum)
-				u := uuid.New()
-				newfile := filepath.Join(newdir, u.String()+".mkv")
+				mkvfile := fmt.Sprintf("%s[%d].mkv", u, i)
+				newfile := filepath.Join(newdir, mkvfile)
 				os.Rename(oldfile, newfile)
-				fileDetails[u.String()] = map[string]interface{}{
+				fileDetails[i] = map[string]interface{}{
 					"shasum": shasum,
 					"name":   file.Name(),
 				}
@@ -101,7 +103,7 @@ func (w *Workflow) Start() {
 				"year":  details.year,
 				"files": fileDetails,
 			}
-			newfile := filepath.Join(newdir, uuid.New().String()+".json")
+			newfile := filepath.Join(newdir, u.String()+".json")
 			if bytes, err := json.Marshal(content); err != nil {
 				log.Fatal(err)
 			} else if err := os.WriteFile(newfile, bytes, 0664); err != nil {
