@@ -71,8 +71,14 @@ func (w *Workflow) Start() {
 			return
 		}
 		defer os.RemoveAll(dir)
-		details := w.deviceHandler.HandleDevice(w.device)
-		log.Printf("Rip: %+v\n", details)
+		var details *MovieDetails = nil
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			details = w.deviceHandler.HandleDevice(w.device)
+			log.Printf("Rip: %+v\n", details)
+		}()
 
 		log.Println("Done")
 		if files, err := ripFiles(w.device, dir); err != nil {
@@ -110,6 +116,7 @@ func (w *Workflow) Start() {
 				}
 			}
 
+			wg.Wait()
 			content := map[string]interface{}{
 				"name":    details.name,
 				"year":    details.year,
