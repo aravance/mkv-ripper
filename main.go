@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to open log file", err)
 	}
+	defer logfile.Close()
 	log.SetOutput(logfile)
 
 	devchan := make(chan Device)
