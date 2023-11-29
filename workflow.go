@@ -38,8 +38,8 @@ func NewWorkflow(deviceHandler DeviceHandler, device Device, path string) Workfl
 	}
 }
 
-func ripFiles(device Device, dir string) ([]fs.FileInfo, error) {
-	statchan, err := ripDevice(device, dir)
+func ripFiles(w *Workflow, dir string) ([]fs.FileInfo, error) {
+	statchan, err := ripDevice(w.device, dir)
 	if err != nil {
 		log.Println("Error ripping device", err)
 		return nil, err
@@ -49,8 +49,7 @@ func ripFiles(device Device, dir string) ([]fs.FileInfo, error) {
 	go func() {
 		defer wg.Done()
 		for status := range statchan {
-			// w.status = &status
-			log.Println(status)
+			w.status = &status
 		}
 	}()
 
@@ -81,7 +80,7 @@ func (w *Workflow) Start() {
 		}()
 
 		log.Println("Done")
-		if files, err := ripFiles(w.device, dir); err != nil {
+		if files, err := ripFiles(w, dir); err != nil {
 			log.Println("Error opening dir", dir)
 		} else {
 			newdir := filepath.Join(w.path, ".input")
