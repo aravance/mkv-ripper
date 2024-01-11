@@ -70,7 +70,7 @@ type RipStatus struct {
 
 func ripDevice(device Device, path string) (chan RipStatus, error) {
 	dev := device.Type() + ":" + device.Device()
-	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "--minlength=3600", "mkv", dev, "all", path)
+	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "--minlength=3600", "mkv", dev, "0", path)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Println("Failed to call makemkvcon")

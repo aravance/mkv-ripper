@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -18,27 +17,25 @@ type DeviceHandler interface {
 	HandleDevice(Device) *MovieDetails
 }
 
-type Workflow struct {
-	deviceHandler DeviceHandler
-	device        Device
-	path          string
-	once          sync.Once
-	details       *MovieDetails
-	status        *RipStatus
+type RipRequest struct {
+	device  Device
+	path    string
+	once    sync.Once
+	status  *RipStatus
+	outchan chan *DetailRequest
 }
 
-func NewWorkflow(deviceHandler DeviceHandler, device Device, path string) Workflow {
-	return Workflow{
-		deviceHandler: deviceHandler,
-		device:        device,
-		path:          path,
-		once:          sync.Once{},
-		details:       nil,
-		status:        nil,
+func NewRipRequest(device Device, path string, outchan chan *DetailRequest) RipRequest {
+	return RipRequest{
+		device:  device,
+		path:    path,
+		outchan: outchan,
+		once:    sync.Once{},
+		status:  nil,
 	}
 }
 
-func ripFiles(w *Workflow, dir string) ([]fs.FileInfo, error) {
+func ripFiles(w *RipRequest, dir string) ([]fs.FileInfo, error) {
 	statchan, err := ripDevice(w.device, dir)
 	if err != nil {
 		log.Println("Error ripping device", err)
@@ -62,7 +59,7 @@ func ripFiles(w *Workflow, dir string) ([]fs.FileInfo, error) {
 	}
 }
 
-func (w *Workflow) Start() {
+func (w *RipRequest) Start() {
 	go w.once.Do(func() {
 		dir, err := os.MkdirTemp(w.path, ".rip")
 		if err != nil {
@@ -70,14 +67,7 @@ func (w *Workflow) Start() {
 			return
 		}
 		defer os.RemoveAll(dir)
-		var details *MovieDetails = nil
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			details = w.deviceHandler.HandleDevice(w.device)
-			log.Printf("Rip: %+v\n", details)
-		}()
+		label := w.device.Label()
 
 		log.Println("Done")
 		if files, err := ripFiles(w, dir); err != nil {
@@ -115,18 +105,15 @@ func (w *Workflow) Start() {
 				}
 			}
 
-			wg.Wait()
 			content := map[string]interface{}{
-				"name":    details.name,
-				"year":    details.year,
-				"variant": details.variant,
-				"files":   fileDetails,
+				"label": label,
+				"files": fileDetails,
 			}
 			newfile := filepath.Join(newdir, u.String()+".json")
-			if bytes, err := json.Marshal(content); err != nil {
+			if err := writeJson(newfile, content); err != nil {
 				log.Fatal(err)
-			} else if err := os.WriteFile(newfile, bytes, 0664); err != nil {
-				log.Fatal(err)
+			} else {
+				w.outchan <- &DetailRequest{newfile}
 			}
 		}
 	})
