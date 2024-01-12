@@ -11,19 +11,13 @@ import (
 
 const defaultPath = "/var/rip"
 
-type MovieDetails struct {
-	name    string
-	year    string
-	variant string
-}
-
 type DetailRequest struct {
 	jsonfile string
 }
 
 type IngestRequest struct {
-	jsonfile  string
-	details *MovieDetails
+	jsonfile string
+	details  *MovieDetails
 }
 
 func readJson(file string) (map[string]interface{}, error) {
@@ -66,6 +60,7 @@ func main() {
 
 	go func() {
 		for dev := range devchan {
+			fmt.Println("Found device:", dev.Label())
 			if dev.Available() {
 				jsonfile, err := ripFiles(dev, path)
 				if err != nil {
@@ -107,16 +102,15 @@ func main() {
 	}()
 
 	go func() {
-		fmt.Println("Listing files")
 		inpath := filepath.Join(path, ".input")
 		files, err := os.ReadDir(inpath)
 		if err != nil {
 			log.Fatal(err)
 		}
 		for _, file := range files {
-			fmt.Println("Working on file:", file)
 			ext := filepath.Ext(file.Name())
 			if ext == ".json" {
+				fmt.Println("Found existing file:", file)
 				detailchan <- &DetailRequest{filepath.Join(inpath, file.Name())}
 			}
 		}

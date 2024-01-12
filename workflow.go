@@ -6,12 +6,28 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/vansante/go-ffprobe"
 )
 
 type DeviceHandler interface {
 	HandleDevice(Device) *MovieDetails
+}
+
+func getResolution(file string) (string, error) {
+	data, err := ffprobe.GetProbeData(file, 5*time.Second)
+	if err != nil {
+		return "", err
+	}
+	height := data.GetFirstVideoStream().Height
+	switch height {
+	case 2160:
+		return "4k", nil
+	default:
+		return fmt.Sprintf("%dp", height), nil
+	}
 }
 
 func ripFiles(device Device, path string) (*string, error) {
@@ -56,17 +72,22 @@ func ripFiles(device Device, path string) (*string, error) {
 			log.Println("Starting sha256sum for " + oldfile)
 			shasum, err := sha256sum(oldfile)
 			if err != nil {
-				log.Println("Error in sha256sum for " + oldfile)
+				log.Fatal("Error in sha256sum for " + oldfile)
 			} else {
 				log.Println("sha256sum " + file.Name() + ": " + shasum)
 			}
 			mkvfile := fmt.Sprintf("%s_%02d.mkv", u, i)
 			newfile := filepath.Join(newdir, mkvfile)
 			os.Rename(oldfile, newfile)
+			resolution, err := getResolution(newfile)
+			if err != nil {
+				log.Fatal("Error getting resolution for "+newfile, err)
+			}
 			fileDetails[i] = map[string]interface{}{
-				"shasum": shasum,
-				"name":   file.Name(),
-				"file":   mkvfile,
+				"shasum":     shasum,
+				"filename":   mkvfile,
+				"original":   file.Name(),
+				"resolution": resolution,
 			}
 		}
 
