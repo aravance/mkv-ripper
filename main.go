@@ -18,11 +18,11 @@ type MovieDetails struct {
 }
 
 type DetailRequest struct {
-	infile string
+	jsonfile string
 }
 
 type IngestRequest struct {
-	infile  string
+	jsonfile  string
 	details *MovieDetails
 }
 
@@ -67,8 +67,12 @@ func main() {
 	go func() {
 		for dev := range devchan {
 			if dev.Available() {
-				request := NewRipRequest(dev, path, detailchan)
-				go request.Start()
+				jsonfile, err := ripFiles(dev, path)
+				if err != nil {
+					log.Println("Error ripping device", err)
+					continue
+				}
+				detailchan <- &DetailRequest{*jsonfile}
 			} else {
 				log.Println("Unavailable device", dev)
 			}
@@ -77,17 +81,19 @@ func main() {
 
 	go func() {
 		for request := range detailchan {
-			content, err := readJson(request.infile)
+			content, err := readJson(request.jsonfile)
 			if err != nil {
-				log.Fatal(err)
+				log.Println("Error handling request", request.jsonfile, err)
+				return
 			}
 			details, changed := requestDetails(content)
 			if changed {
-				if err := writeJson(request.infile, content); err != nil {
-					log.Fatal(err)
+				if err := writeJson(request.jsonfile, content); err != nil {
+					log.Println("Error writing request json changes", request.jsonfile, err)
+					return
 				}
 			}
-			ingestRequest := &IngestRequest{request.infile, details}
+			ingestRequest := &IngestRequest{request.jsonfile, details}
 			go func(request *IngestRequest) {
 				ingestchan <- request
 			}(ingestRequest)

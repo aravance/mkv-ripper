@@ -92,7 +92,7 @@ func ripDevice(device Device, path string) (chan RipStatus, error) {
 		var max int
 		for scanner.Scan() {
 			line := scanner.Text()
-			log.Println(line)
+			// log.Println(line)
 			prefix, content, _ := strings.Cut(line, ":")
 			parts := strings.Split(content, ",")
 			switch prefix {
