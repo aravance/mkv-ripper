@@ -12,13 +12,109 @@ import (
 )
 
 const defaultDir = "/var/rip"
+const remoteHost = "plexbot"
+const remoteDir = "~"
 
-type DetailRequest struct {
-	jsonfile string
+func loadExistingWorkflows(dir string, outchan chan<- *Workflow) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		ext := path.Ext(file.Name())
+		if ext == ".json" {
+			log.Println("Found existing file:", file)
+			workflow, err := LoadWorkflow(path.Join(dir, file.Name()))
+			if err != nil {
+				log.Println("Failed to load workflow:", file, err)
+				continue
+			}
+
+			go func(w *Workflow) {
+				outchan <- w
+			}(workflow)
+		}
+	}
 }
 
-type IngestRequest struct {
-	jsonfile string
+func handleDevices(dir string, devchan <-chan Device, outchan chan<- *Workflow) {
+	for dev := range devchan {
+		if dev.Available() {
+			label := dev.Label()
+			log.Println("Found device:", label)
+
+			workflow := NewWorkflow(uuid.New().String(), dir, label)
+
+			if files, err := ripFiles(dev, workflow.Id, dir); err != nil {
+				log.Println("Error ripping device", err)
+				continue
+			} else {
+				workflow.AddFiles(files...)
+
+				if err := workflow.Save(); err != nil {
+					log.Println("Failed to save workflow", workflow, err)
+					continue
+				}
+			}
+
+			go func(w *Workflow) {
+				outchan <- w
+			}(workflow)
+		} else {
+			log.Println("Unavailable device", dev)
+		}
+	}
+}
+
+func handleDetailRequests(inchan <-chan *Workflow, outchan chan<- *Workflow) {
+	for workflow := range inchan {
+		if workflow.Name == nil || workflow.Year == nil {
+			details := requestDetails(workflow)
+			workflow.AddMovieDetails(details)
+			if err := workflow.Save(); err != nil {
+				log.Println("Failed to save workflow", workflow, err)
+				continue
+			}
+		}
+
+		go func(w *Workflow) {
+			outchan <- w
+		}(workflow)
+	}
+}
+
+func handleIngestRequests(inchan <-chan *Workflow) {
+	for workflow := range inchan {
+		remote := fmt.Sprintf("%s:%s/.input", remoteHost, remoteDir)
+		for _, file := range workflow.Files {
+			filename := path.Join(workflow.Dir, file.Filename)
+			cmd := exec.Command("scp", filename, remote)
+			cmd.Start()
+			cmd.Wait()
+		}
+
+		// TODO scp json file
+		cmd := exec.Command("scp", workflow.JsonFile(), remote)
+		cmd.Start()
+		cmd.Wait()
+
+		fmt.Println("Ingest workflow", workflow, workflow.JsonFile())
+		continue
+
+		// TODO run ssh ingest
+		cmd = exec.Command("ssh", remoteHost, path.Join(remoteDir, "ingest.sh"), path.Base(workflow.JsonFile()))
+		cmd.Start()
+		cmd.Wait()
+
+		// TODO run local ingest
+		// check sha256sum
+		// create directory
+		// fix permissions
+		// add sha256sum to Movies.sha256
+		// move Files
+		// delete old files
+	}
 }
 
 func main() {
@@ -37,112 +133,10 @@ func main() {
 	listener.Start()
 	defer listener.Stop()
 
-	dir := defaultDir
-
-	go func() {
-		for dev := range devchan {
-			if dev.Available() {
-				label := dev.Label()
-				log.Println("Found device:", label)
-
-				workflow := NewWorkflow(
-					uuid.New().String(),
-					path.Join(dir, ".input"),
-					label,
-				)
-
-				if files, err := ripFiles(dev, workflow.Id, dir); err != nil {
-					log.Println("Error ripping device", err)
-					continue
-				} else {
-					workflow.AddFiles(files...)
-
-					if err := workflow.Save(); err != nil {
-						log.Println("Failed to save workflow", workflow, err)
-						continue
-					}
-				}
-
-				go func(w *Workflow) {
-					detailchan <- w
-				}(workflow)
-			} else {
-				log.Println("Unavailable device", dev)
-			}
-		}
-	}()
-
-	go func() {
-		for workflow := range detailchan {
-			if workflow.Name == nil || workflow.Year == nil {
-				details := requestDetails(workflow)
-				workflow.AddMovieDetails(details)
-				if err := workflow.Save(); err != nil {
-					log.Println("Failed to save workflow", workflow, err)
-					continue
-				}
-			}
-
-			go func(w *Workflow) {
-				ingestchan <- w
-			}(workflow)
-		}
-	}()
-
-	go func() {
-		for workflow := range ingestchan {
-			for _, file := range workflow.Files {
-				filename := path.Join(workflow.Dir, file.Filename)
-				fmt.Println("mkv file:", path.Join(workflow.Dir, filename))
-				continue
-				cmd := exec.Command("scp", filename, "plexbot:~")
-				cmd.Start()
-				cmd.Wait()
-			}
-			fmt.Println("Ingest workflow", workflow, workflow.JsonFile())
-			continue
-
-			// TODO scp json file
-			cmd := exec.Command("scp", workflow.JsonFile(), "plexbot:~")
-			cmd.Start()
-			cmd.Wait()
-
-			// TODO run ssh ingest
-			cmd = exec.Command("ssh", "plexbot", "./ingest.sh", path.Base(workflow.JsonFile()))
-			cmd.Start()
-			cmd.Wait()
-
-			// TODO run local ingest
-			cmd = exec.Command("/mnt/nas/plex/ingest.sh", "plexbot", "./ingest.sh", workflow.JsonFile())
-			cmd.Start()
-			cmd.Wait()
-		}
-	}()
-
-	go func() {
-		inpath := path.Join(dir, ".input")
-		files, err := os.ReadDir(inpath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, file := range files {
-			ext := path.Ext(file.Name())
-			fmt.Println(file, ext)
-			if ext == ".json" {
-				log.Println("Found existing file:", file)
-				workflow, err := LoadWorkflow(path.Join(inpath, file.Name()))
-				if err != nil {
-					log.Println("Failed to load workflow:", file, err)
-					continue
-				}
-
-				go func(w *Workflow) {
-					detailchan <- w
-				}(workflow)
-			}
-		}
-	}()
+	go loadExistingWorkflows(defaultDir, detailchan)
+	go handleDevices(defaultDir, devchan, detailchan)
+	go handleDetailRequests(detailchan, ingestchan)
+	go handleIngestRequests(ingestchan)
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)
@@ -150,4 +144,6 @@ func main() {
 
 	log.Println("Shutting down")
 	close(devchan)
+	close(detailchan)
+	close(ingestchan)
 }

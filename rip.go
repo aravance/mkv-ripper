@@ -1,19 +1,14 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 	"time"
 
 	"github.com/vansante/go-ffprobe"
 )
-
-type DeviceHandler interface {
-	HandleDevice(Device) *MovieDetails
-}
 
 func getResolution(file string) (string, error) {
 	data, err := ffprobe.GetProbeData(file, 5*time.Second)
@@ -29,16 +24,16 @@ func getResolution(file string) (string, error) {
 	}
 }
 
-func ripFiles(device Device, workflowId string, path string) ([]MkvFile, error) {
-	dir, err := os.MkdirTemp(path, ".rip")
+func ripFiles(device Device, workflowId string, dir string) ([]MkvFile, error) {
+	ripdir, err := os.MkdirTemp(dir, ".rip")
 	if err != nil {
 		log.Println("Failed to make temp dir", err)
 		return nil, err
 	}
-	defer os.RemoveAll(dir)
+	defer os.RemoveAll(ripdir)
 
 	log.Println("Done")
-	statchan, err := ripDevice(device, dir)
+	statchan, err := ripDevice(device, ripdir)
 	if err != nil {
 		log.Println("Error ripping device", err)
 		return nil, err
@@ -48,24 +43,13 @@ func ripFiles(device Device, workflowId string, path string) ([]MkvFile, error) 
 		log.Println(status)
 	}
 
-	if files, err := os.ReadDir(dir); err != nil {
-		log.Println("Error opening dir", dir)
+	if files, err := os.ReadDir(ripdir); err != nil {
+		log.Println("Error opening dir", ripdir)
 		return nil, err
 	} else {
-		newdir := filepath.Join(path, ".input")
-		if stat, err := os.Stat(newdir); errors.Is(err, os.ErrNotExist) {
-			if err := os.Mkdir(newdir, 0775); err != nil {
-				log.Println("Error making directory", err)
-				return nil, err
-			}
-		} else if !stat.IsDir() {
-			log.Println(".input is not a directory")
-			return nil, err
-		}
-
 		fileDetails := make([]MkvFile, len(files))
 		for i, file := range files {
-			oldfile := filepath.Join(dir, file.Name())
+			oldfile := path.Join(ripdir, file.Name())
 			log.Println("Starting sha256sum for " + oldfile)
 			shasum, err := sha256sum(oldfile)
 			if err != nil {
@@ -73,13 +57,15 @@ func ripFiles(device Device, workflowId string, path string) ([]MkvFile, error) 
 			} else {
 				log.Println("sha256sum " + file.Name() + ": " + shasum)
 			}
+
 			mkvfile := fmt.Sprintf("%s_%02d.mkv", workflowId, i)
-			newfile := filepath.Join(newdir, mkvfile)
+			newfile := path.Join(dir, mkvfile)
 			os.Rename(oldfile, newfile)
 			resolution, err := getResolution(newfile)
 			if err != nil {
 				log.Fatal("Error getting resolution for "+newfile, err)
 			}
+
 			fileDetails[i] = MkvFile{
 				Filename:   mkvfile,
 				Original:   file.Name(),
