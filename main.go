@@ -1,15 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
-	"path/filepath"
+	"path"
+
+	"github.com/google/uuid"
 )
 
-const defaultPath = "/var/rip"
+const defaultDir = "/var/rip"
 
 type DetailRequest struct {
 	jsonfile string
@@ -17,27 +19,6 @@ type DetailRequest struct {
 
 type IngestRequest struct {
 	jsonfile string
-	details  *MovieDetails
-}
-
-func readJson(file string) (map[string]interface{}, error) {
-	bytes, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	content := map[string]interface{}{}
-	json.Unmarshal(bytes, &content)
-	return content, nil
-}
-
-func writeJson(file string, content map[string]interface{}) error {
-	if bytes, err := json.Marshal(content); err != nil {
-		return err
-	} else if err := os.WriteFile(file, bytes, 0664); err != nil {
-		return err
-	} else {
-		return nil
-	}
 }
 
 func main() {
@@ -49,25 +30,42 @@ func main() {
 	log.SetOutput(logfile)
 
 	devchan := make(chan Device)
-	detailchan := make(chan *DetailRequest)
-	ingestchan := make(chan *IngestRequest)
+	detailchan := make(chan *Workflow)
+	ingestchan := make(chan *Workflow)
 
 	listener := NewUdevListener(devchan)
 	listener.Start()
 	defer listener.Stop()
 
-	path := defaultPath
+	dir := defaultDir
 
 	go func() {
 		for dev := range devchan {
-			fmt.Println("Found device:", dev.Label())
 			if dev.Available() {
-				jsonfile, err := ripFiles(dev, path)
-				if err != nil {
+				label := dev.Label()
+				log.Println("Found device:", label)
+
+				workflow := NewWorkflow(
+					uuid.New().String(),
+					path.Join(dir, ".input"),
+					label,
+				)
+
+				if files, err := ripFiles(dev, workflow.Id, dir); err != nil {
 					log.Println("Error ripping device", err)
 					continue
+				} else {
+					workflow.AddFiles(files...)
+
+					if err := workflow.Save(); err != nil {
+						log.Println("Failed to save workflow", workflow, err)
+						continue
+					}
 				}
-				detailchan <- &DetailRequest{*jsonfile}
+
+				go func(w *Workflow) {
+					detailchan <- w
+				}(workflow)
 			} else {
 				log.Println("Unavailable device", dev)
 			}
@@ -75,43 +73,73 @@ func main() {
 	}()
 
 	go func() {
-		for request := range detailchan {
-			content, err := readJson(request.jsonfile)
-			if err != nil {
-				log.Println("Error handling request", request.jsonfile, err)
-				return
-			}
-			details, changed := requestDetails(content)
-			if changed {
-				if err := writeJson(request.jsonfile, content); err != nil {
-					log.Println("Error writing request json changes", request.jsonfile, err)
-					return
+		for workflow := range detailchan {
+			if workflow.Name == nil || workflow.Year == nil {
+				details := requestDetails(workflow)
+				workflow.AddMovieDetails(details)
+				if err := workflow.Save(); err != nil {
+					log.Println("Failed to save workflow", workflow, err)
+					continue
 				}
 			}
-			ingestRequest := &IngestRequest{request.jsonfile, details}
-			go func(request *IngestRequest) {
-				ingestchan <- request
-			}(ingestRequest)
+
+			go func(w *Workflow) {
+				ingestchan <- w
+			}(workflow)
 		}
 	}()
 
 	go func() {
-		for request := range ingestchan {
-			fmt.Println("Ingest request:", request)
+		for workflow := range ingestchan {
+			for _, file := range workflow.Files {
+				filename := path.Join(workflow.Dir, file.Filename)
+				fmt.Println("mkv file:", path.Join(workflow.Dir, filename))
+				continue
+				cmd := exec.Command("scp", filename, "plexbot:~")
+				cmd.Start()
+				cmd.Wait()
+			}
+			fmt.Println("Ingest workflow", workflow, workflow.JsonFile())
+			continue
+
+			// TODO scp json file
+			cmd := exec.Command("scp", workflow.JsonFile(), "plexbot:~")
+			cmd.Start()
+			cmd.Wait()
+
+			// TODO run ssh ingest
+			cmd = exec.Command("ssh", "plexbot", "./ingest.sh", path.Base(workflow.JsonFile()))
+			cmd.Start()
+			cmd.Wait()
+
+			// TODO run local ingest
+			cmd = exec.Command("/mnt/nas/plex/ingest.sh", "plexbot", "./ingest.sh", workflow.JsonFile())
+			cmd.Start()
+			cmd.Wait()
 		}
 	}()
 
 	go func() {
-		inpath := filepath.Join(path, ".input")
+		inpath := path.Join(dir, ".input")
 		files, err := os.ReadDir(inpath)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		for _, file := range files {
-			ext := filepath.Ext(file.Name())
+			ext := path.Ext(file.Name())
+			fmt.Println(file, ext)
 			if ext == ".json" {
-				fmt.Println("Found existing file:", file)
-				detailchan <- &DetailRequest{filepath.Join(inpath, file.Name())}
+				log.Println("Found existing file:", file)
+				workflow, err := LoadWorkflow(path.Join(inpath, file.Name()))
+				if err != nil {
+					log.Println("Failed to load workflow:", file, err)
+					continue
+				}
+
+				go func(w *Workflow) {
+					detailchan <- w
+				}(workflow)
 			}
 		}
 	}()

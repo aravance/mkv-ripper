@@ -11,29 +11,27 @@ type MovieDetails struct {
 	year string
 }
 
-func requestDetails(content map[string]interface{}) (details *MovieDetails, changed bool) {
-	scanner := bufio.NewScanner(os.Stdin)
-	changed = false
+func requestDetails(workflow *Workflow) MovieDetails {
+	fmt.Println("Requesting details for disk:", workflow.Label)
 	var name string
 	var year string
-	fmt.Println("Found new device:", content["label"])
-	if content["name"] != nil {
-		name, _ = content["name"].(string)
+	scanner := bufio.NewScanner(os.Stdin)
+
+	if workflow.Name != nil {
+		name = *workflow.Name
 	} else {
-		changed = true
 		fmt.Println("Name?")
 		scanner.Scan()
 		name = scanner.Text()
-		content["name"] = name
 	}
-	if content["year"] != nil {
-		year, _ = content["year"].(string)
+
+	if workflow.Year != nil {
+		year = *workflow.Year
 	} else {
-		changed = true
 		fmt.Println("Year?")
 		scanner.Scan()
 		year = scanner.Text()
-		content["year"] = year
 	}
-	return &MovieDetails{name, year}, changed
+
+	return MovieDetails{name, year}
 }
