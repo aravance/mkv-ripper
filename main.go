@@ -1,26 +1,73 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"io/fs"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path"
 
 	"github.com/google/uuid"
 )
 
-const defaultDir = "/var/rip"
-const remoteHost = "plexbot"
-const remoteDir = "~"
+const ripDir = "/var/rip"
+const localDir = "/mnt/nas/plex"
+const remoteDir = "ssh:plexbot:."
 
-func loadExistingWorkflows(dir string, outchan chan<- *Workflow) {
+func main() {
+	logfile, err := os.OpenFile("mkv.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+	if err != nil {
+		log.Fatalln("Failed to open log file", err)
+	}
+	defer logfile.Close()
+	log.SetOutput(logfile)
+
+	devchan := make(chan Device)
+	detailchan := make(chan *Workflow, 10)
+	ingestchan := make(chan *Workflow, 10)
+
+	listener := NewUdevListener(devchan)
+	listener.Start()
+	defer listener.Stop()
+
+	targets := []string{remoteDir, localDir}
+
+	go handleDevices(ripDir, devchan, detailchan)
+	go handleDetailRequests(detailchan, ingestchan)
+	go handleIngestRequests(targets, ingestchan)
+
+	for _, workflow := range loadExistingWorkflows(ripDir) {
+		go func(w *Workflow) {
+			if w.Name == nil || w.Year == nil {
+				detailchan <- w
+			} else {
+				ingestchan <- w
+			}
+		}(workflow)
+	}
+
+	sigchan := make(chan os.Signal)
+	signal.Notify(sigchan, os.Interrupt)
+	<-sigchan
+
+	log.Println("Shutting down")
+	close(devchan)
+	close(detailchan)
+	close(ingestchan)
+}
+
+func loadExistingWorkflows(dir string) []*Workflow {
 	files, err := os.ReadDir(dir)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			err = os.MkdirAll(dir, 0775)
+			return []*Workflow{}
+		}
 		log.Fatal(err)
 	}
 
+	result := []*Workflow{}
 	for _, file := range files {
 		ext := path.Ext(file.Name())
 		if ext == ".json" {
@@ -31,11 +78,10 @@ func loadExistingWorkflows(dir string, outchan chan<- *Workflow) {
 				continue
 			}
 
-			go func(w *Workflow) {
-				outchan <- w
-			}(workflow)
+			result = append(result, workflow)
 		}
 	}
+	return result
 }
 
 func handleDevices(dir string, devchan <-chan Device, outchan chan<- *Workflow) {
@@ -84,66 +130,37 @@ func handleDetailRequests(inchan <-chan *Workflow, outchan chan<- *Workflow) {
 	}
 }
 
-func handleIngestRequests(inchan <-chan *Workflow) {
+func handleIngestRequests(targets []string, inchan <-chan *Workflow) {
 	for workflow := range inchan {
-		remote := fmt.Sprintf("%s:%s/.input", remoteHost, remoteDir)
-		for _, file := range workflow.Files {
-			filename := path.Join(workflow.Dir, file.Filename)
-			cmd := exec.Command("scp", filename, remote)
-			cmd.Start()
-			cmd.Wait()
+		log.Println("Ingesting", workflow)
+
+		if len(workflow.Files) == 0 {
+			log.Println("no files to ingest")
+		}
+		if len(workflow.Files) > 1 {
+			log.Println("too many files to ingest")
 		}
 
-		// TODO scp json file
-		cmd := exec.Command("scp", workflow.JsonFile(), remote)
-		cmd.Start()
-		cmd.Wait()
+		var err error
+		for _, target := range targets {
+			ingester, err := NewIngester(target)
+			if err != nil {
+				log.Println("Error finding ingester", err, "for target", target)
+				continue
+			}
 
-		fmt.Println("Ingest workflow", workflow, workflow.JsonFile())
-		continue
+			err = ingester.Ingest(workflow)
+			if err != nil {
+				log.Println("error running ingester", ingester, err)
+			}
+		}
 
-		// TODO run ssh ingest
-		cmd = exec.Command("ssh", remoteHost, path.Join(remoteDir, "ingest.sh"), path.Base(workflow.JsonFile()))
-		cmd.Start()
-		cmd.Wait()
-
-		// TODO run local ingest
-		// check sha256sum
-		// create directory
-		// fix permissions
-		// add sha256sum to Movies.sha256
-		// move Files
-		// delete old files
+		if err == nil {
+			log.Println("removing files")
+			for _, file := range workflow.Files {
+				os.Remove(path.Join(workflow.Dir, file.Filename))
+			}
+			os.Remove(workflow.JsonFile())
+		}
 	}
-}
-
-func main() {
-	logfile, err := os.OpenFile("mkv.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
-	if err != nil {
-		log.Fatalln("Failed to open log file", err)
-	}
-	defer logfile.Close()
-	log.SetOutput(logfile)
-
-	devchan := make(chan Device)
-	detailchan := make(chan *Workflow)
-	ingestchan := make(chan *Workflow)
-
-	listener := NewUdevListener(devchan)
-	listener.Start()
-	defer listener.Stop()
-
-	go loadExistingWorkflows(defaultDir, detailchan)
-	go handleDevices(defaultDir, devchan, detailchan)
-	go handleDetailRequests(detailchan, ingestchan)
-	go handleIngestRequests(ingestchan)
-
-	sigchan := make(chan os.Signal)
-	signal.Notify(sigchan, os.Interrupt)
-	<-sigchan
-
-	log.Println("Shutting down")
-	close(devchan)
-	close(detailchan)
-	close(ingestchan)
 }

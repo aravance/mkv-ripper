@@ -17,11 +17,11 @@ type MkvFile struct {
 }
 
 type Workflow struct {
-	Id    string `json:"-"`
-	Dir   string `json:"-"`
-	Label string  `json:"label"`
-	Name  *string `json:"name,omitempty"`
-	Year  *string `json:"year,omitempty"`
+	Id    string    `json:"-"`
+	Dir   string    `json:"-"`
+	Label string    `json:"label"`
+	Name  *string   `json:"name,omitempty"`
+	Year  *string   `json:"year,omitempty"`
 	Files []MkvFile `json:"files"`
 }
 
