@@ -65,7 +65,7 @@ func (d *DevDevice) Type() string {
 
 func (d *DevDevice) Available() bool {
 	_, err := os.Stat(d.Device())
-	return err == nil || !errors.Is(err, fs.ErrNotExist) 
+	return err == nil || !errors.Is(err, fs.ErrNotExist)
 }
 
 type DiscDevice struct {
@@ -92,9 +92,51 @@ type RipStatus struct {
 	max     int
 }
 
-func Mkv(device Device, titleId string, path string) (chan RipStatus, error) {
+type MkvOptions struct {
+	Messages  *string
+	Progress  *string
+	Debug     *string
+	Directio  *bool
+	Cache     *string
+	Minlength *int
+	Noscan    bool
+}
+
+func (m MkvOptions) toStrings() []string {
+	result := []string{"-r"}
+	if m.Messages != nil {
+		result = append(result, "--messages="+*m.Messages)
+	}
+	if m.Progress != nil {
+		result = append(result, "--progress="+*m.Progress)
+	}
+	if m.Debug != nil {
+		result = append(result, "--debug="+*m.Debug)
+	}
+	if m.Directio != nil {
+		result = append(result, "--directio="+strconv.FormatBool(*m.Directio))
+	}
+	if m.Minlength != nil {
+		result = append(result, "--minlength"+strconv.Itoa(*m.Minlength))
+	}
+	if m.Noscan {
+		result = append(result, "--noscan")
+	}
+	return result
+}
+
+func Stropt(s string) *string {
+	return &s
+}
+
+func Intopt(i int) *int {
+	return &i
+}
+
+func Mkv(device Device, titleId string, path string, opts MkvOptions) (chan RipStatus, error) {
 	dev := device.Type() + ":" + device.Device()
-	cmd := exec.Command("makemkvcon", "-r", "--noscan", "--progress=-same", "--minlength=3600", "mkv", dev, titleId, path)
+	parts := append(opts.toStrings(), []string{"mkv", dev, titleId, path}...)
+	cmd := exec.Command("makemkvcon", parts...)
 	var scanner bufio.Scanner
 	if out, err := cmd.StdoutPipe(); err != nil {
 		log.Println("Failed to call makemkvcon")

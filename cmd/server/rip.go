@@ -7,8 +7,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/aravance/mkv-ripper/internal/model"
 	"github.com/aravance/mkv-ripper/internal/mkv"
+	"github.com/aravance/mkv-ripper/internal/model"
 	"github.com/aravance/mkv-ripper/internal/util"
 	"github.com/vansante/go-ffprobe"
 )
@@ -36,7 +36,12 @@ func ripFiles(device mkv.Device, workflowId string, dir string) ([]model.MkvFile
 	defer os.RemoveAll(ripdir)
 
 	log.Println("Done")
-	statchan, err := mkv.Mkv(device, "0", ripdir)
+	opts := mkv.MkvOptions{
+		Progress:  mkv.Stropt("-same"),
+		Minlength: mkv.Intopt(3600),
+		Noscan:    true,
+	}
+	statchan, err := mkv.Mkv(device, "0", ripdir, opts)
 	if err != nil {
 		log.Println("Error ripping device", err)
 		return nil, err
