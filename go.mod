@@ -1,4 +1,4 @@
-module github.com/mkv-ripper
+module github.com/aravance/mkv-ripper
 
 go 1.20
 
