@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/aravance/go-makemkv"
-	"github.com/aravance/mkv-ripper/internal/model"
-	"github.com/aravance/mkv-ripper/internal/util"
+	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/util"
 	"github.com/vansante/go-ffprobe"
 )
 

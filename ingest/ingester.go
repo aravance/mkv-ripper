@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/aravance/mkv-ripper/internal/model"
+	"github.com/aravance/mkv-ripper/model"
 )
 
 type Ingester interface {

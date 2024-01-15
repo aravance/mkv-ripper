@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path"
 
-	"github.com/aravance/mkv-ripper/internal/model"
+	"github.com/aravance/mkv-ripper/model"
 )
 
 type SshIngester struct {

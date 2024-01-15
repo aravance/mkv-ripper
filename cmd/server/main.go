@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aravance/mkv-ripper/internal/handler"
-	"github.com/aravance/mkv-ripper/internal/ingest"
-	"github.com/aravance/mkv-ripper/internal/model"
+	"github.com/aravance/mkv-ripper/handler"
+	"github.com/aravance/mkv-ripper/ingest"
+	"github.com/aravance/mkv-ripper/model"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"

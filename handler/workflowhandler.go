@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/aravance/mkv-ripper/internal/model"
+	"github.com/aravance/mkv-ripper/model"
 	"github.com/labstack/echo/v4"
 )
 

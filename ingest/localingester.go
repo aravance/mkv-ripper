@@ -13,8 +13,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aravance/mkv-ripper/internal/model"
-	"github.com/aravance/mkv-ripper/internal/util"
+	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/util"
 )
 
 type LocalIngester struct {
