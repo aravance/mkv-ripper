@@ -18,7 +18,7 @@ import (
 
 const ripDir = "/var/rip"
 const localDir = "/mnt/nas/plex"
-const remoteDir = "ssh:plexbot:."
+const remoteDir = "ssh://plexbot/plex"
 
 func main() {
 	if logfile, err := os.OpenFile("mkv.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {

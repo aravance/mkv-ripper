@@ -6,25 +6,22 @@ import (
 	"net/url"
 	"os/exec"
 	"path"
-	"strings"
 )
 
 type SshIngester struct {
 	uri *url.URL
 }
 
-func runCommand(host string, cmd string) error {
-	ssh := exec.Command("ssh", host, cmd)
+func (t*SshIngester) runCommand(cmd string) error {
+	ssh := exec.Command("ssh", t.uri.Host, cmd)
 	log.Println(ssh)
 
-	err := ssh.Start()
-	if err != nil {
+	if err := ssh.Start(); err != nil {
 		log.Println("error starting ssh", cmd, err)
 		return err
 	}
 
-	err = ssh.Wait()
-	if err != nil {
+	if err := ssh.Wait(); err != nil {
 		log.Println("error running ssh", cmd, err)
 		return err
 	}
@@ -44,74 +41,62 @@ func (t *SshIngester) Ingest(w *Workflow) error {
 	moviedir := fmt.Sprintf("%s (%s)", *w.Name, *w.Year)
 	mkvfile := fmt.Sprintf("%s (%s) - %s.mkv", *w.Name, *w.Year, f.Resolution)
 
-	parts := strings.Split(t.uri.Opaque, ":")
-	if len(parts) != 2 {
-		return fmt.Errorf("unable to parse host and path")
-	}
-	host := parts[0]
-	remotepath := parts[1]
-	newdir := path.Join(remotepath, "Movies", moviedir)
+	newdir := path.Join(t.uri.Path, "Movies", moviedir)
 	newfile := path.Join(newdir, mkvfile)
-	oldfile := path.Join(remotepath, ".input", f.Filename)
-	shafile := path.Join(remotepath, "Movies.sha256")
+	oldfile := path.Join(t.uri.Path, ".input", f.Filename)
+	shafile := path.Join(t.uri.Path, "Movies.sha256")
 
 	from := path.Join(w.Dir, f.Filename)
-	to := path.Join(t.uri.Opaque, ".input")
+	to := fmt.Sprintf("%s:%s", t.uri.Hostname(), path.Join(t.uri.Path, ".input"))
 	log.Println("starting scp", from, to)
 	scp := exec.Command("scp", from, to)
-	err := scp.Start()
-	if err != nil {
+	if err := scp.Start(); err != nil {
 		log.Println("error starting scp", from, to, err)
 		return err
 	}
-	err = scp.Wait()
-	if err != nil {
+	if err := scp.Wait(); err != nil {
 		log.Println("error running scp", from, to, err)
 		return err
 	}
 
+	var cmd string
+
 	// check sha256sum
-	cmd := fmt.Sprintf("echo '%s  %s' | sha256sum -c", f.Shasum, oldfile)
-	err = runCommand(host, cmd)
-	if err != nil {
+	cmd = fmt.Sprintf("echo '%s  %s' | sha256sum -c", f.Shasum, oldfile)
+	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to verify checksum")
 		return err
 	}
 
 	// create directory
 	cmd = fmt.Sprintf("mkdir -p '%s'", newdir)
-	err = runCommand(host, cmd)
-	if err != nil {
+	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to mkdir", newdir)
 		return err
 	}
 
 	// fix permissions
 	cmd = fmt.Sprintf("chmod 775 '%s'", newdir)
-	err = runCommand(host, cmd)
-	if err != nil {
+	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to chmod dir", newdir)
 		return err
 	}
 	cmd = fmt.Sprintf("chmod 664 '%s'", oldfile)
-	err = runCommand(host, cmd)
-	if err != nil {
+	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to chmod file", newdir)
 		return err
 	}
 
 	// add sha256sum to Movies.sha256
 	cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -o %s -m - %s", f.Shasum, moviedir, mkvfile, shafile, shafile)
-	err = runCommand(host, cmd)
-	if err != nil {
+	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to add shasum", newdir)
 		return err
 	}
 
 	// move Files
 	cmd = fmt.Sprintf("mv '%s' '%s'", oldfile, newfile)
-	err = runCommand(host, cmd)
-	if err != nil {
+	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to move files", newdir)
 		return err
 	}
