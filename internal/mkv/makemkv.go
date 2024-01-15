@@ -84,11 +84,11 @@ func (d *DiscDevice) Available() bool {
 }
 
 type RipStatus struct {
-	channel string
-	title   string
-	current int
-	total   int
-	max     int
+	Channel string
+	Title   string
+	Current int
+	Total   int
+	Max     int
 }
 
 type MkvOptions struct {
@@ -170,11 +170,11 @@ func Mkv(device Device, titleId string, destination string, opts MkvOptions) (ch
 				total, _ = strconv.Atoi(parts[1])
 				max, _ = strconv.Atoi(parts[2])
 				statuschan <- RipStatus{
-					title:   title,
-					channel: channel,
-					current: current,
-					total:   total,
-					max:     max,
+					Title:   title,
+					Channel: channel,
+					Current: current,
+					Total:   total,
+					Max:     max,
 				}
 			}
 		}
