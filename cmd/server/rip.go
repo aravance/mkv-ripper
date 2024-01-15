@@ -35,18 +35,19 @@ func ripFiles(device mkv.Device, workflowId string, dir string) ([]model.MkvFile
 	}
 	defer os.RemoveAll(ripdir)
 
-	log.Println("Done")
 	opts := mkv.MkvOptions{
 		Progress:  mkv.Stropt("-same"),
 		Minlength: mkv.Intopt(3600),
 		Noscan:    true,
 	}
+	log.Println("Starting mkv")
 	statchan, err := mkv.Mkv(device, "0", ripdir, opts)
 	if err != nil {
 		log.Println("Error ripping device", err)
 		return nil, err
 	}
 
+	log.Println("Processing mkv output")
 	for status := range statchan {
 		log.Println(status)
 	}

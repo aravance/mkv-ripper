@@ -4,24 +4,29 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/aravance/mkv-ripper/internal/handler"
 	"github.com/aravance/mkv-ripper/internal/ingest"
 	"github.com/aravance/mkv-ripper/internal/model"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 const LOG_FILE = "./mkv.log"
 const RIP_DIR = "/var/rip"
-const LOCAL_DIR = "/mnt/nas/plex"
-const REMOTE_DIR = "ssh://plexbot/plex"
+var targets = []string{
+	"ssh://plexbot/plex",
+	"/mnt/nas/plex",
+}
 
 func main() {
 	if logfile, err := os.OpenFile(LOG_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
@@ -41,8 +46,6 @@ func main() {
 	listener.Start()
 	defer listener.Stop()
 
-	targets := []string{REMOTE_DIR, LOCAL_DIR}
-
 	go handleDevices(RIP_DIR, devchan)
 	go handleIngestRequests(targets, ingestchan)
 
@@ -55,23 +58,19 @@ func main() {
 		}(workflow)
 	}
 
-	server := &http.Server{
-		Addr: ":8080",
-	}
+	server := echo.New()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		workflows := model.LoadExistingWorkflows()
-		if len(workflows) == 0 {
-			io.WriteString(w, fmt.Sprintf("No workflows in progress"))
-		} else {
-			for _, workflow := range workflows {
-				io.WriteString(w, fmt.Sprintf("%s: %s\n\n", workflow.Id, workflow.Label))
-			}
-		}
-	})
+	server.Use(middleware.Logger())
+	server.Use(middleware.Recover())
+
+	workflowHandler := handler.NewWorkflowHandler(ingestchan)
+
+	server.GET("/", index)
+	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
+	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
 
 	go func() {
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		if err := server.Start(":8080"); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalln("server error", err)
 		}
 	}()
@@ -88,13 +87,23 @@ func main() {
 	}
 }
 
+func index(c echo.Context) error {
+	workflows := model.LoadExistingWorkflows()
+	if len(workflows) == 0 {
+		return c.String(http.StatusOK, fmt.Sprintf("No workflows in progress"))
+	} else {
+		workflowStrs := make([]string, len(workflows))
+		for i, workflow := range workflows {
+			workflowStrs[i] = fmt.Sprintf("%s: %s", workflow.Id, workflow.Label)
+		}
+		return c.String(http.StatusOK, strings.Join(workflowStrs, "\n\n"))
+	}
+}
+
 func handleDevices(dir string, devchan <-chan *UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
-			label := dev.Label()
-			log.Println("Found device:", label)
-
-			workflow := model.NewWorkflow(uuid.New().String(), dir, label)
+			workflow := model.NewWorkflow(uuid.New().String(), dir, dev.Label())
 
 			if files, err := ripFiles(dev, workflow.Id, dir); err != nil {
 				log.Println("Error ripping device", err)
