@@ -73,7 +73,7 @@ func NewWorkflow(id string, dir string, label string) *Workflow {
 }
 
 func LoadWorkflow(id string) (*Workflow, error) {
-	file := path.Join(dir, id + ".json")
+	file := path.Join(dir, id+".json")
 	w := NewWorkflow(id, dir, "")
 
 	bytes, err := os.ReadFile(file)

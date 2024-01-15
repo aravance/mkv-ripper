@@ -14,7 +14,7 @@ type SshIngester struct {
 	uri *url.URL
 }
 
-func (t*SshIngester) runCommand(cmd string) error {
+func (t *SshIngester) runCommand(cmd string) error {
 	ssh := exec.Command("ssh", t.uri.Host, cmd)
 	log.Println(ssh)
 
@@ -105,4 +105,3 @@ func (t *SshIngester) Ingest(w *model.Workflow) error {
 
 	return nil
 }
-

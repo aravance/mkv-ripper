@@ -7,7 +7,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/aravance/mkv-ripper/internal/mkv"
+	"github.com/aravance/go-makemkv"
 	"github.com/aravance/mkv-ripper/internal/model"
 	"github.com/aravance/mkv-ripper/internal/util"
 	"github.com/vansante/go-ffprobe"

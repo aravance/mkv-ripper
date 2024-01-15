@@ -18,12 +18,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const LOG_FILE = "./mkv.log"
 const RIP_DIR = "/var/rip"
 const LOCAL_DIR = "/mnt/nas/plex"
 const REMOTE_DIR = "ssh://plexbot/plex"
 
 func main() {
-	if logfile, err := os.OpenFile("mkv.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
+	if logfile, err := os.OpenFile(LOG_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)
 	} else {
 		defer logfile.Close()
