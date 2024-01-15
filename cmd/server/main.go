@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -47,7 +46,8 @@ func main() {
 	go handleDevices(RIP_DIR, devchan)
 	go handleIngestRequests(targets, ingestchan)
 
-	for _, workflow := range loadExistingWorkflows(RIP_DIR) {
+	model.SetDir(RIP_DIR)
+	for _, workflow := range model.LoadExistingWorkflows() {
 		go func(w *model.Workflow) {
 			if w.Name != nil && w.Year != nil {
 				ingestchan <- w
@@ -56,7 +56,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		workflows := loadExistingWorkflows(RIP_DIR)
+		workflows := model.LoadExistingWorkflows()
 		if len(workflows) == 0 {
 			io.WriteString(w, fmt.Sprintf("No workflows in progress"))
 		} else {
@@ -85,33 +85,6 @@ func main() {
 
 	close(devchan)
 	close(ingestchan)
-}
-
-func loadExistingWorkflows(dir string) []*model.Workflow {
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			err = os.MkdirAll(dir, 0775)
-			return []*model.Workflow{}
-		}
-		log.Fatal(err)
-	}
-
-	result := []*model.Workflow{}
-	for _, file := range files {
-		ext := path.Ext(file.Name())
-		if ext == ".json" {
-			log.Println("Found existing file:", file)
-			workflow, err := model.LoadWorkflow(path.Join(dir, file.Name()))
-			if err != nil {
-				log.Println("Failed to load workflow:", file, err)
-				continue
-			}
-
-			result = append(result, workflow)
-		}
-	}
-	return result
 }
 
 func handleDevices(dir string, devchan <-chan *UdevDevice) {
