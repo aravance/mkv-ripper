@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -133,25 +132,25 @@ func Intopt(i int) *int {
 	return &i
 }
 
-func Mkv(device Device, titleId string, path string, opts MkvOptions) (chan RipStatus, error) {
+func Mkv(device Device, titleId string, destination string, opts MkvOptions) (chan RipStatus, error) {
 	dev := device.Type() + ":" + device.Device()
-	parts := append(opts.toStrings(), []string{"mkv", dev, titleId, path}...)
-	cmd := exec.Command("makemkvcon", parts...)
+	options := append(opts.toStrings(), []string{"mkv", dev, titleId, destination}...)
+	cmd := exec.Command("makemkvcon", options...)
+
 	var scanner bufio.Scanner
 	if out, err := cmd.StdoutPipe(); err != nil {
-		log.Println("Failed to call makemkvcon")
 		return nil, err
 	} else {
 		scanner = *bufio.NewScanner(out)
 	}
-	log.Println("Ripping")
 	if err := cmd.Start(); err != nil {
-		log.Fatalln("Failed to call makemkvcon")
+		return nil, err
 	}
 
 	statuschan := make(chan RipStatus)
 
 	go func() {
+		defer close(statuschan)
 		var title string
 		var channel string
 		var total int
@@ -159,7 +158,6 @@ func Mkv(device Device, titleId string, path string, opts MkvOptions) (chan RipS
 		var max int
 		for scanner.Scan() {
 			line := scanner.Text()
-			// log.Println(line)
 			prefix, content, _ := strings.Cut(line, ":")
 			parts := strings.Split(content, ",")
 			switch prefix {
@@ -180,11 +178,9 @@ func Mkv(device Device, titleId string, path string, opts MkvOptions) (chan RipS
 				}
 			}
 		}
-		log.Println("Finished ripping")
 		if err := cmd.Wait(); err != nil {
-			log.Println("Error finishing ripping", err)
+			// TODO what do I do with this err?
 		}
-		close(statuschan)
 	}()
 	return statuschan, nil
 }
