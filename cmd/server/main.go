@@ -32,15 +32,14 @@ func main() {
 	}
 
 	devchan := make(chan *UdevDevice)
+	defer close(devchan)
+
 	ingestchan := make(chan *model.Workflow, 10)
+	defer close(ingestchan)
 
 	listener := NewUdevListener(devchan)
 	listener.Start()
 	defer listener.Stop()
-
-	server := &http.Server{
-		Addr: ":8080",
-	}
 
 	targets := []string{REMOTE_DIR, LOCAL_DIR}
 
@@ -54,6 +53,10 @@ func main() {
 				ingestchan <- w
 			}
 		}(workflow)
+	}
+
+	server := &http.Server{
+		Addr: ":8080",
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -83,9 +86,6 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalln("server shutdown error", err)
 	}
-
-	close(devchan)
-	close(ingestchan)
 }
 
 func handleDevices(dir string, devchan <-chan *UdevDevice) {
