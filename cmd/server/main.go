@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -31,7 +32,6 @@ func main() {
 	}
 
 	devchan := make(chan *UdevDevice)
-	detailchan := make(chan *model.Workflow, 10)
 	ingestchan := make(chan *model.Workflow, 10)
 
 	listener := NewUdevListener(devchan)
@@ -44,21 +44,26 @@ func main() {
 
 	targets := []string{REMOTE_DIR, LOCAL_DIR}
 
-	go handleDevices(RIP_DIR, devchan, detailchan)
+	go handleDevices(RIP_DIR, devchan)
 	go handleIngestRequests(targets, ingestchan)
 
 	for _, workflow := range loadExistingWorkflows(RIP_DIR) {
 		go func(w *model.Workflow) {
-			if w.Name == nil || w.Year == nil {
-				detailchan <- w
-			} else {
+			if w.Name != nil && w.Year != nil {
 				ingestchan <- w
 			}
 		}(workflow)
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "Hello world\n")
+		workflows := loadExistingWorkflows(RIP_DIR)
+		if len(workflows) == 0 {
+			io.WriteString(w, fmt.Sprintf("No workflows in progress"))
+		} else {
+			for _, workflow := range workflows {
+				io.WriteString(w, fmt.Sprintf("%s: %s\n\n", workflow.Id, workflow.Label))
+			}
+		}
 	})
 
 	go func() {
@@ -79,7 +84,6 @@ func main() {
 	}
 
 	close(devchan)
-	close(detailchan)
 	close(ingestchan)
 }
 
@@ -110,7 +114,7 @@ func loadExistingWorkflows(dir string) []*model.Workflow {
 	return result
 }
 
-func handleDevices(dir string, devchan <-chan *UdevDevice, outchan chan<- *model.Workflow) {
+func handleDevices(dir string, devchan <-chan *UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
 			label := dev.Label()
@@ -129,10 +133,6 @@ func handleDevices(dir string, devchan <-chan *UdevDevice, outchan chan<- *model
 					continue
 				}
 			}
-
-			go func(w *model.Workflow) {
-				outchan <- w
-			}(workflow)
 		} else {
 			log.Println("Unavailable device", dev)
 		}
