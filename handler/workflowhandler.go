@@ -60,9 +60,10 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "year cannot be empty")
 	}
 
-	workflow.Name = &name
-	workflow.Year = &year
-	workflow.Save()
+	workflow.AddMovieDetails(name, year)
+	if err := workflow.Save(); err != nil {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
+	}
 
 	go func(w *model.Workflow) {
 		h.inchan <- w

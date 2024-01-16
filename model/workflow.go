@@ -110,7 +110,7 @@ func (t *Workflow) AddFiles(mkvFiles ...MkvFile) {
 	t.Files = append(t.Files, mkvFiles...)
 }
 
-func (t *Workflow) AddMovieDetails(movieDetails MovieDetails) {
-	t.Name = &movieDetails.name
-	t.Year = &movieDetails.year
+func (t *Workflow) AddMovieDetails(name string, year string) {
+	t.Name = &name
+	t.Year = &year
 }
