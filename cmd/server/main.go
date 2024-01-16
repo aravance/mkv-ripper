@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
-	"strings"
 	"syscall"
 	"time"
 
@@ -23,6 +21,7 @@ import (
 
 const LOG_FILE = "./mkv.log"
 const RIP_DIR = "/var/rip"
+
 var targets = []string{
 	"ssh://plexbot/plex",
 	"/mnt/nas/plex",
@@ -63,9 +62,10 @@ func main() {
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 
+	indexHandler := handler.NewIndexHandler()
 	workflowHandler := handler.NewWorkflowHandler(ingestchan)
 
-	server.GET("/", index)
+	server.GET("/", indexHandler.GetIndex)
 	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
 	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
 
@@ -87,23 +87,11 @@ func main() {
 	}
 }
 
-func index(c echo.Context) error {
-	workflows := model.LoadExistingWorkflows()
-	if len(workflows) == 0 {
-		return c.String(http.StatusOK, fmt.Sprintf("No workflows in progress"))
-	} else {
-		workflowStrs := make([]string, len(workflows))
-		for i, workflow := range workflows {
-			workflowStrs[i] = fmt.Sprintf("%s: %s", workflow.Id, workflow.Label)
-		}
-		return c.String(http.StatusOK, strings.Join(workflowStrs, "\n\n"))
-	}
-}
-
 func handleDevices(dir string, devchan <-chan *UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
 			workflow := model.NewWorkflow(uuid.New().String(), dir, dev.Label())
+			workflow.Save()
 
 			if files, err := ripFiles(dev, workflow.Id, dir); err != nil {
 				log.Println("Error ripping device", err)
