@@ -26,13 +26,9 @@ func (i IndexHandler) GetIndex(c echo.Context) error {
 		for i, workflow := range workflows {
 			workflowStrs[i] = fmt.Sprintf("%s: %s", workflow.Id, workflow.Label)
 		}
-		fmt.Println("making template")
 		t := template.Must(template.New("index").Parse(`{{ range . }}<a href="/workflow/{{ .Id }}">{{ .Label }}</a>{{ end }}`))
 		buf := &bytes.Buffer{}
-		fmt.Println("executing template")
 		t.Execute(buf, workflows)
-		fmt.Println("done with template")
 		return c.HTML(http.StatusOK, buf.String())
 	}
 }
-

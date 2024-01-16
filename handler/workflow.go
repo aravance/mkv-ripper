@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
 
 	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/view/workflow"
 	"github.com/labstack/echo/v4"
 )
 
@@ -21,7 +21,7 @@ func NewWorkflowHandler(inchan chan *model.Workflow) WorkflowHandler {
 
 func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 	id := c.Param("id")
-	workflow, err := model.LoadWorkflow(id)
+	w, err := model.LoadWorkflow(id)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return c.NoContent(http.StatusNotFound)
@@ -29,16 +29,12 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 		}
 	}
-	if bytes, err := json.Marshal(workflow); err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
-	} else {
-		return c.JSONBlob(http.StatusOK, bytes)
-	}
+	return render(c, workflow.Show(w))
 }
 
 func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	id := c.Param("id")
-	workflow, err := model.LoadWorkflow(id)
+	w, err := model.LoadWorkflow(id)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return c.NoContent(http.StatusNotFound)
@@ -47,7 +43,7 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 		}
 	}
 
-	if workflow.Name != nil || workflow.Year != nil {
+	if w.Name != nil || w.Year != nil {
 		return c.String(http.StatusConflict, "workflow already has details")
 	}
 
@@ -60,19 +56,17 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "year cannot be empty")
 	}
 
-	workflow.AddMovieDetails(name, year)
-	if err := workflow.Save(); err != nil {
+	w.AddMovieDetails(name, year)
+	if err := w.Save(); err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 
-	go func(w *model.Workflow) {
-		h.inchan <- w
-	}(workflow)
-
-	if bytes, err := json.Marshal(workflow); err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
+	if len(w.Files) > 0 {
+		go func(w *model.Workflow) {
+			h.inchan <- w
+		}(w)
+		return c.String(http.StatusOK, "Import started")
 	} else {
-		return c.JSONBlob(http.StatusOK, bytes)
+		return c.String(http.StatusOK, "Import will begin once the files are ready")
 	}
 }
-

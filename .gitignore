@@ -1,3 +1,5 @@
 /ignore
 /build
+/bin
 mkv-ripper
+*_templ.go
