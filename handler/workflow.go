@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/aravance/mkv-ripper/model"
-	"github.com/aravance/mkv-ripper/view/workflow"
+	workflowview "github.com/aravance/mkv-ripper/view/workflow"
 	"github.com/labstack/echo/v4"
 )
 
@@ -29,7 +29,7 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 			return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 		}
 	}
-	return render(c, workflow.Show(w))
+	return render(c, workflowview.Show(w))
 }
 
 func (h WorkflowHandler) PostWorkflow(c echo.Context) error {

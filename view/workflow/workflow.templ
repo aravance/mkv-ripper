@@ -1,4 +1,4 @@
-package workflow
+package workflowview
 
 import (
 	"github.com/aravance/mkv-ripper/model"
@@ -6,13 +6,33 @@ import (
 )
 
 templ Show(workflow *model.Workflow) {
-	@layout.Base() {
-		<h1>{ workflow.Label }</h1>
-		<form hx-post="?" hx-target="#response">
-			<label for="name">Name <input type="text" name="name"/></label>
-			<label for="year">Year <input type="text" name="year"/></label>
-			<input type="submit" value="Submit"/>
-		</form>
+	@layout.Base(workflow.Label) {
+		<main>
+			<div class="d-flex align-items-center py-4">
+				<div class="m-auto w-100" style="max-width: 330px;">
+					<h1 class="h3 mb-4 fw-normal">{ workflow.Label }</h1>
+					<form hx-post="?" hx-target="#response" hx-indicator="#spinner">
+						<div class="form-floating mb-2">
+							<input type="text" name="name" id="name" class="form-control" placeholder="Name"/>
+							<label for="name" class="form-label">Name</label>
+						</div>
+						<div class="form-floating mb-3">
+							<input type="number" name="year" id="year" class="form-control" placeholder="Year"/>
+							<label for="year" class="form-label">Year</label>
+						</div>
+						<div>
+							<button type="submit" class="btn btn-primary w-100">Submit</button>
+							<span
+								class="spinner-border spinner-border-sm htmx-indicator"
+								id="spinner"
+								role="status"
+								aria-hidden="true"
+							></span>
+						</div>
+					</form>
+				</div>
+			</div>
+		</main>
 		<div id="response"></div>
 	}
 }
