@@ -21,6 +21,7 @@ import (
 
 const LOG_FILE = "./mkv.log"
 const RIP_DIR = "/var/rip"
+const OUT_DIR = "."
 
 var targets = []string{
 	"ssh://plexbot/plex",
@@ -45,10 +46,10 @@ func main() {
 	listener.Start()
 	defer listener.Stop()
 
-	go handleDevices(RIP_DIR, devchan)
+	go handleDevices(devchan)
 	go handleIngestRequests(targets, ingestchan)
 
-	model.SetDir(RIP_DIR)
+	model.SetDir(OUT_DIR)
 	for _, workflow := range model.LoadExistingWorkflows() {
 		go func(w *model.Workflow) {
 			if w.Name != nil && w.Year != nil {
@@ -87,13 +88,15 @@ func main() {
 	}
 }
 
-func handleDevices(dir string, devchan <-chan *UdevDevice) {
+func handleDevices(devchan <-chan *UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
-			workflow := model.NewWorkflow(uuid.New().String(), dir, dev.Label())
+			id := uuid.New().String()
+			dir := path.Join(OUT_DIR, id)
+			workflow := model.NewWorkflow(id, dir, dev.Label())
 			workflow.Save()
 
-			if files, err := ripFiles(dev, workflow.Id, dir); err != nil {
+			if files, err := ripFiles(dev, RIP_DIR, dir); err != nil {
 				log.Println("Error ripping device", err)
 				continue
 			} else {
@@ -129,7 +132,8 @@ func handleIngestRequests(targets []string, inchan <-chan *model.Workflow) {
 				continue
 			}
 
-			err = ingester.Ingest(workflow)
+			mkv := workflow.Files[0]
+			err = ingester.Ingest(mkv, *workflow.Name, *workflow.Year)
 			if err != nil {
 				log.Println("error running ingester", ingester, err)
 			}
@@ -138,7 +142,7 @@ func handleIngestRequests(targets []string, inchan <-chan *model.Workflow) {
 		if err == nil {
 			log.Println("removing files")
 			for _, file := range workflow.Files {
-				os.Remove(path.Join(workflow.Dir, file.Filename))
+				os.Remove(file.Filename)
 			}
 			os.Remove(workflow.JsonFile())
 		}

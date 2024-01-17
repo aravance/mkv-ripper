@@ -62,21 +62,13 @@ func writeShasums(shafile string, shasums map[string]string) error {
 	return nil
 }
 
-func (t *LocalIngester) Ingest(w *model.Workflow) error {
-	if len(w.Files) == 0 {
-		return fmt.Errorf("no available files to ingest")
-	}
-	if len(w.Files) > 1 {
-		return fmt.Errorf("too many available files to ingest")
-	}
-	f := w.Files[0]
-
-	moviedir := fmt.Sprintf("%s (%s)", *w.Name, *w.Year)
-	mkvfile := fmt.Sprintf("%s (%s) - %s.mkv", *w.Name, *w.Year, f.Resolution)
+func (t *LocalIngester) Ingest(mkv model.MkvFile, name string, year string) error {
+	moviedir := fmt.Sprintf("%s (%s)", name, year)
+	mkvfile := fmt.Sprintf("%s (%s) - %s.mkv", name, year, mkv.Resolution)
 
 	newdir := path.Join(t.uri.Path, "Movies", moviedir)
 	newfile := path.Join(newdir, mkvfile)
-	oldfile := path.Join(t.uri.Path, ".input", f.Filename)
+	ingestfile := path.Join(t.uri.Path, ".input", path.Base(mkv.Filename))
 	shafile := path.Join(t.uri.Path, "Movies.sha256")
 
 	err := os.MkdirAll(path.Join(t.uri.Path, ".input"), 0775)
@@ -84,13 +76,12 @@ func (t *LocalIngester) Ingest(w *model.Workflow) error {
 		log.Println("error making input dir", err)
 		return err
 	}
-	from := path.Join(w.Dir, f.Filename)
-	i, err := os.Open(from)
+	i, err := os.Open(mkv.Filename)
 	if err != nil {
 		log.Println("error opening existing file", i, err)
 		return err
 	}
-	o, err := os.Create(oldfile)
+	o, err := os.Create(ingestfile)
 	if err != nil {
 		log.Println("error opening write file", i, err)
 		return err
@@ -102,13 +93,13 @@ func (t *LocalIngester) Ingest(w *model.Workflow) error {
 	}
 
 	// check sha256sum
-	log.Println("Checking shasum", oldfile)
-	shasum, err := util.Sha256sum(oldfile)
+	log.Println("Checking shasum", ingestfile)
+	shasum, err := util.Sha256sum(ingestfile)
 	if err != nil {
 		return err
 	}
-	if shasum != f.Shasum {
-		return fmt.Errorf("shasum does not match expected: " + f.Shasum + ", actual: " + shasum)
+	if shasum != mkv.Shasum {
+		return fmt.Errorf("shasum does not match expected: " + mkv.Shasum + ", actual: " + shasum)
 	}
 
 	// create directory
@@ -118,7 +109,7 @@ func (t *LocalIngester) Ingest(w *model.Workflow) error {
 	}
 
 	// fix permissions
-	err = os.Chmod(oldfile, 0664)
+	err = os.Chmod(ingestfile, 0664)
 	if err != nil {
 		return err
 	}
@@ -138,7 +129,7 @@ func (t *LocalIngester) Ingest(w *model.Workflow) error {
 
 	// move Files
 	log.Println("Moving files")
-	err = os.Rename(oldfile, newfile)
+	err = os.Rename(ingestfile, newfile)
 	if err != nil {
 		return err
 	}

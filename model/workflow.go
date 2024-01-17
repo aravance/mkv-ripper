@@ -13,18 +13,17 @@ import (
 
 type MkvFile struct {
 	Filename   string `json:"filename"`
-	Original   string `json:"original"`
 	Shasum     string `json:"shasum"`
 	Resolution string `json:"resolution"`
 }
 
 type Workflow struct {
 	Id    string    `json:"-"`
-	Dir   string    `json:"-"`
 	Label string    `json:"label"`
 	Name  *string   `json:"name,omitempty"`
 	Year  *string   `json:"year,omitempty"`
 	Files []MkvFile `json:"files"`
+	dir   string    `json:"-"`
 }
 
 var dir = "."
@@ -64,11 +63,11 @@ func LoadExistingWorkflows() []*Workflow {
 func NewWorkflow(id string, dir string, label string) *Workflow {
 	return &Workflow{
 		Id:    id,
-		Dir:   dir,
 		Label: label,
 		Name:  nil,
 		Year:  nil,
 		Files: make([]MkvFile, 0),
+		dir:   dir,
 	}
 }
 
@@ -92,7 +91,7 @@ func LoadWorkflow(id string) (*Workflow, error) {
 }
 
 func (t *Workflow) Save() error {
-	file := path.Join(t.Dir, fmt.Sprintf("%s.json", t.Id))
+	file := path.Join(t.dir, fmt.Sprintf("%s.json", t.Id))
 	if bytes, err := json.Marshal(*t); err != nil {
 		return err
 	} else if err := os.WriteFile(file, bytes, 0664); err != nil {
@@ -103,7 +102,7 @@ func (t *Workflow) Save() error {
 }
 
 func (t *Workflow) JsonFile() string {
-	return path.Join(t.Dir, fmt.Sprintf("%s.json", t.Id))
+	return path.Join(t.dir, fmt.Sprintf("%s.json", t.Id))
 }
 
 func (t *Workflow) AddFiles(mkvFiles ...MkvFile) {

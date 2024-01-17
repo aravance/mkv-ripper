@@ -9,7 +9,7 @@ import (
 )
 
 type Ingester interface {
-	Ingest(w *model.Workflow) error
+	Ingest(mkv model.MkvFile, name string, year string) error
 }
 
 func NewIngester(uri string) (Ingester, error) {

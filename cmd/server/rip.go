@@ -27,8 +27,8 @@ func getResolution(file string) (string, error) {
 	}
 }
 
-func ripFiles(device mkv.Device, workflowId string, dir string) ([]model.MkvFile, error) {
-	ripdir, err := os.MkdirTemp(dir, ".rip")
+func ripFiles(device mkv.Device, tempdir string, outdir string) ([]model.MkvFile, error) {
+	ripdir, err := os.MkdirTemp(tempdir, ".rip")
 	if err != nil {
 		log.Println("Failed to make temp dir", err)
 		return nil, err
@@ -67,8 +67,7 @@ func ripFiles(device mkv.Device, workflowId string, dir string) ([]model.MkvFile
 				log.Println("sha256sum " + file.Name() + ": " + shasum)
 			}
 
-			mkvfile := fmt.Sprintf("%s_%02d.mkv", workflowId, i)
-			newfile := path.Join(dir, mkvfile)
+			newfile := path.Join(outdir, file.Name())
 			os.Rename(oldfile, newfile)
 			resolution, err := getResolution(newfile)
 			if err != nil {
@@ -76,8 +75,7 @@ func ripFiles(device mkv.Device, workflowId string, dir string) ([]model.MkvFile
 			}
 
 			fileDetails[i] = model.MkvFile{
-				Filename:   mkvfile,
-				Original:   file.Name(),
+				Filename:   newfile,
 				Shasum:     shasum,
 				Resolution: resolution,
 			}
