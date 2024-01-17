@@ -1,0 +1,18 @@
+package indexview
+
+import "github.com/aravance/mkv-ripper/view/layout"
+import "github.com/aravance/mkv-ripper/model"
+
+templ Show(workflows []*model.Workflow) {
+	@layout.Base("mkv-ripper") {
+		if len(workflows) == 0 {
+			<div>No workflows in progress</div>
+		} else {
+			<ul>
+				for _, w := range workflows {
+					<li><a href={ templ.URL("/workflow/" + w.Id) }>{ w.Label }</a></li>
+				}
+			</ul>
+		}
+	}
+}

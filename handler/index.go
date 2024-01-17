@@ -1,12 +1,8 @@
 package handler
 
 import (
-	"bytes"
-	"fmt"
-	"html/template"
-	"net/http"
-
 	"github.com/aravance/mkv-ripper/model"
+	indexview "github.com/aravance/mkv-ripper/view/index"
 	"github.com/labstack/echo/v4"
 )
 
@@ -19,16 +15,5 @@ func NewIndexHandler() IndexHandler {
 
 func (i IndexHandler) GetIndex(c echo.Context) error {
 	workflows := model.LoadExistingWorkflows()
-	if len(workflows) == 0 {
-		return c.String(http.StatusOK, fmt.Sprintf("No workflows in progress"))
-	} else {
-		workflowStrs := make([]string, len(workflows))
-		for i, workflow := range workflows {
-			workflowStrs[i] = fmt.Sprintf("%s: %s", workflow.Id, workflow.Label)
-		}
-		t := template.Must(template.New("index").Parse(`{{ range . }}<a href="/workflow/{{ .Id }}">{{ .Label }}</a>{{ end }}`))
-		buf := &bytes.Buffer{}
-		t.Execute(buf, workflows)
-		return c.HTML(http.StatusOK, buf.String())
-	}
+	return render(c, indexview.Show(workflows))
 }
