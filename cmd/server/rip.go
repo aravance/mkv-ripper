@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/aravance/go-makemkv"
@@ -27,10 +28,10 @@ func getResolution(file string) (string, error) {
 	}
 }
 
-func ripFiles(device mkv.Device, tempdir string, outdir string) ([]model.MkvFile, error) {
-	ripdir, err := os.MkdirTemp(tempdir, ".rip")
+func ripFile(device mkv.Device, titleId int, outdir string) (*model.MkvFile, error) {
+	ripdir, err := os.MkdirTemp(outdir, ".rip")
 	if err != nil {
-		log.Println("Failed to make temp dir", err)
+		log.Println("failed to make temp dir", err)
 		return nil, err
 	}
 	defer os.RemoveAll(ripdir)
@@ -40,29 +41,36 @@ func ripFiles(device mkv.Device, tempdir string, outdir string) ([]model.MkvFile
 		Minlength: mkv.Intopt(3600),
 		Noscan:    true,
 	}
-	log.Println("Starting mkv")
-	statchan, err := mkv.Mkv(device, "0", ripdir, opts)
+	log.Println("starting mkv")
+	statchan, err := mkv.Mkv(device, strconv.Itoa(titleId), ripdir, opts)
 	if err != nil {
-		log.Println("Error ripping device", err)
+		log.Println("error ripping device", err)
 		return nil, err
 	}
 
-	log.Println("Processing mkv output")
+	log.Println("processing mkv output")
 	for status := range statchan {
 		log.Println(status)
 	}
 
 	if files, err := os.ReadDir(ripdir); err != nil {
-		log.Println("Error opening dir", ripdir)
+		log.Println("error opening dir", ripdir, err)
 		return nil, err
 	} else {
-		fileDetails := make([]model.MkvFile, len(files))
-		for i, file := range files {
+		if len(files) == 0 {
+			log.Println("no files found after ripping")
+			return nil, nil
+		} else if len(files) > 1 {
+			log.Println("too many files found after ripping")
+			return nil, nil
+		} else {
+			file := files[0]
 			oldfile := path.Join(ripdir, file.Name())
-			log.Println("Starting sha256sum for " + oldfile)
+			log.Println("starting sha256sum for " + oldfile)
 			shasum, err := util.Sha256sum(oldfile)
 			if err != nil {
-				log.Fatal("Error in sha256sum for " + oldfile)
+				log.Println("error in sha256sum for " + oldfile)
+				return nil, err
 			} else {
 				log.Println("sha256sum " + file.Name() + ": " + shasum)
 			}
@@ -71,16 +79,15 @@ func ripFiles(device mkv.Device, tempdir string, outdir string) ([]model.MkvFile
 			os.Rename(oldfile, newfile)
 			resolution, err := getResolution(newfile)
 			if err != nil {
-				log.Fatal("Error getting resolution for "+newfile, err)
+				log.Println("error getting resolution for "+newfile, err)
+				return nil, err
 			}
 
-			fileDetails[i] = model.MkvFile{
+			return &model.MkvFile{
 				Filename:   newfile,
 				Shasum:     shasum,
 				Resolution: resolution,
-			}
+			}, nil
 		}
-
-		return fileDetails, nil
 	}
 }

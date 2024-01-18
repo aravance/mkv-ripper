@@ -14,13 +14,11 @@ import (
 	"github.com/aravance/mkv-ripper/handler"
 	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 const LOG_FILE = "./mkv.log"
-const RIP_DIR = "/var/rip"
 const OUT_DIR = "."
 
 var targets = []string{
@@ -91,53 +89,54 @@ func main() {
 func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
-			id := uuid.New().String()
-			workflow := workflowManager.NewWorkflow(id, dev.Label())
-
-			dir := path.Join(OUT_DIR, id)
-			if err := os.MkdirAll(dir, 0775); err != nil {
-				log.Println("Error making file directory", err)
+			id := dev.Uuid()
+			workflow, new := workflowManager.NewWorkflow(id, dev.Label())
+			if !new {
+				log.Println("found existing workflow id")
 				continue
 			}
 
-			if files, err := ripFiles(dev, RIP_DIR, dir); err != nil {
-				log.Println("Error ripping device", err)
+			dir := path.Join(OUT_DIR, id)
+			if err := os.MkdirAll(dir, 0775); err != nil {
+				log.Println("error making file directory", err)
+				continue
+			}
+
+			if file, err := ripFile(dev, 0, dir); err != nil {
+				log.Println("error ripping device", err)
 				continue
 			} else {
-				workflow.Files = append(workflow.Files, files...)
+				workflow.File = file
 
 				if err := workflowManager.Save(workflow); err != nil {
-					log.Println("Failed to save workflow", workflow, err)
+					log.Println("failed to save workflow", workflow, err)
 					continue
 				}
 			}
 		} else {
-			log.Println("Unavailable device", dev)
+			log.Println("unavailable device", dev)
 		}
 	}
 }
 
 func handleIngestRequests(workflowManager model.WorkflowManager, targets []string, inchan <-chan *model.Workflow) {
 	for workflow := range inchan {
-		log.Println("Ingesting", workflow)
+		log.Println("ingesting", workflow)
 
-		if len(workflow.Files) == 0 {
+		mkv := workflow.File
+		if mkv == nil {
 			log.Println("no files to ingest")
-		}
-		if len(workflow.Files) > 1 {
-			log.Println("too many files to ingest")
 		}
 
 		var err error
 		for _, target := range targets {
 			ingester, err := ingest.NewIngester(target)
 			if err != nil {
-				log.Println("Error finding ingester", err, "for target", target)
+				log.Println("error finding ingester", err, "for target", target)
 				continue
 			}
 
-			mkv := workflow.Files[0]
-			err = ingester.Ingest(mkv, *workflow.Name, *workflow.Year)
+			err = ingester.Ingest(*mkv, *workflow.Name, *workflow.Year)
 			if err != nil {
 				log.Println("error running ingester", ingester, err)
 			}

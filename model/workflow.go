@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 )
@@ -15,13 +16,13 @@ type MkvFile struct {
 type Workflow struct {
 	Id    string
 	Label string
-	Name  *string `json:",omitempty"`
-	Year  *string `json:",omitempty"`
-	Files []MkvFile
+	Name  *string  `json:",omitempty"`
+	Year  *string  `json:",omitempty"`
+	File  *MkvFile `json:",omitempty"`
 }
 
 type WorkflowManager interface {
-	NewWorkflow(id string, label string) *Workflow
+	NewWorkflow(id string, label string) (*Workflow, bool)
 	GetWorkflow(id string) *Workflow
 	GetWorkflows() []*Workflow
 	Save(*Workflow) error
@@ -39,7 +40,7 @@ func newWorkflow(id string, label string) *Workflow {
 		Label: label,
 		Name:  nil,
 		Year:  nil,
-		Files: make([]MkvFile, 0),
+		File:  nil,
 	}
 }
 
@@ -55,16 +56,15 @@ func NewWorkflowManager(file string) WorkflowManager {
 	return &m
 }
 
-func (m *workflowManager) NewWorkflow(id string, label string) *Workflow {
+func (m *workflowManager) NewWorkflow(id string, label string) (*Workflow, bool) {
 	w, containsKey := m.workflows[id]
 	if containsKey {
-		// TODO throw an error?
-		return w
+		return w, false
 	}
 	w = newWorkflow(id, label)
 	m.workflows[id] = w
 	m.Save(w)
-	return w
+	return w, true
 }
 
 func (m *workflowManager) GetWorkflow(id string) *Workflow {
@@ -90,10 +90,13 @@ func (m *workflowManager) Save(w *Workflow) error {
 }
 
 func (m *workflowManager) Clean(w *Workflow) error {
-	for _, file := range w.Files {
-		os.Remove(file.Filename)
+	err := os.Remove(w.File.Filename)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Println("error removing file", w.File.Filename)
+		return err
 	}
-	return nil
+	w.File = nil
+	return m.Save(w)
 }
 
 func loadWorkflowJson(file string) (map[string]*Workflow, error) {

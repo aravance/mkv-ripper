@@ -20,6 +20,14 @@ func (t *UdevDevice) Label() string {
 	}
 }
 
+func (t *UdevDevice) Uuid() string {
+	if t.udev == nil {
+		return ""
+	} else {
+		return t.udev.PropertyValue("ID_FS_UUID")
+	}
+}
+
 func (t *UdevDevice) Device() string {
 	if t.udev == nil {
 		return ""

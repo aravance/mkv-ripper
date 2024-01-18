@@ -53,7 +53,7 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 
-	if len(w.Files) > 0 {
+	if w.File != nil {
 		go func(w *model.Workflow) {
 			h.inchan <- w
 		}(w)
