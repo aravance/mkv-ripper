@@ -7,13 +7,14 @@ import (
 )
 
 type IndexHandler struct {
+	workflowManager model.WorkflowManager
 }
 
-func NewIndexHandler() IndexHandler {
-	return IndexHandler{}
+func NewIndexHandler(workflowManager model.WorkflowManager) IndexHandler {
+	return IndexHandler{workflowManager}
 }
 
 func (i IndexHandler) GetIndex(c echo.Context) error {
-	workflows := model.LoadExistingWorkflows()
+	workflows := i.workflowManager.GetWorkflows()
 	return render(c, indexview.Show(workflows))
 }

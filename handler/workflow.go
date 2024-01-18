@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"net/http"
 
 	"github.com/aravance/mkv-ripper/model"
@@ -12,35 +10,28 @@ import (
 )
 
 type WorkflowHandler struct {
-	inchan chan *model.Workflow
+	workflowManager model.WorkflowManager
+	inchan          chan *model.Workflow
 }
 
-func NewWorkflowHandler(inchan chan *model.Workflow) WorkflowHandler {
-	return WorkflowHandler{inchan}
+func NewWorkflowHandler(workflowManager model.WorkflowManager, inchan chan *model.Workflow) WorkflowHandler {
+	return WorkflowHandler{workflowManager, inchan}
 }
 
 func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 	id := c.Param("id")
-	w, err := model.LoadWorkflow(id)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return c.NoContent(http.StatusNotFound)
-		} else {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
-		}
+	w := h.workflowManager.GetWorkflow(id)
+	if w == nil {
+		return c.NoContent(http.StatusNotFound)
 	}
 	return render(c, workflowview.Show(w))
 }
 
 func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	id := c.Param("id")
-	w, err := model.LoadWorkflow(id)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return c.NoContent(http.StatusNotFound)
-		} else {
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
-		}
+	w := h.workflowManager.GetWorkflow(id)
+	if w == nil {
+		return c.NoContent(http.StatusNotFound)
 	}
 
 	if w.Name != nil || w.Year != nil {
@@ -56,8 +47,9 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "year cannot be empty")
 	}
 
-	w.AddMovieDetails(name, year)
-	if err := w.Save(); err != nil {
+	w.Name = &name
+	w.Year = &year
+	if err := h.workflowManager.Save(w); err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 

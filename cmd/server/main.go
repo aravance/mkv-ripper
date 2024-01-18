@@ -46,11 +46,8 @@ func main() {
 	listener.Start()
 	defer listener.Stop()
 
-	go handleDevices(devchan)
-	go handleIngestRequests(targets, ingestchan)
-
-	model.SetDir(OUT_DIR)
-	for _, workflow := range model.LoadExistingWorkflows() {
+	workflowManager := model.NewWorkflowManager(path.Join(OUT_DIR, "workflows.json"))
+	for _, workflow := range workflowManager.GetWorkflows() {
 		go func(w *model.Workflow) {
 			if w.Name != nil && w.Year != nil {
 				ingestchan <- w
@@ -58,13 +55,16 @@ func main() {
 		}(workflow)
 	}
 
+	go handleDevices(workflowManager, devchan)
+	go handleIngestRequests(workflowManager, targets, ingestchan)
+
 	server := echo.New()
 
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 
-	indexHandler := handler.NewIndexHandler()
-	workflowHandler := handler.NewWorkflowHandler(ingestchan)
+	indexHandler := handler.NewIndexHandler(workflowManager)
+	workflowHandler := handler.NewWorkflowHandler(workflowManager, ingestchan)
 
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
@@ -88,21 +88,25 @@ func main() {
 	}
 }
 
-func handleDevices(devchan <-chan *UdevDevice) {
+func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
 			id := uuid.New().String()
+			workflow := workflowManager.NewWorkflow(id, dev.Label())
+
 			dir := path.Join(OUT_DIR, id)
-			workflow := model.NewWorkflow(id, dir, dev.Label())
-			workflow.Save()
+			if err := os.MkdirAll(dir, 0775); err != nil {
+				log.Println("Error making file directory", err)
+				continue
+			}
 
 			if files, err := ripFiles(dev, RIP_DIR, dir); err != nil {
 				log.Println("Error ripping device", err)
 				continue
 			} else {
-				workflow.AddFiles(files...)
+				workflow.Files = append(workflow.Files, files...)
 
-				if err := workflow.Save(); err != nil {
+				if err := workflowManager.Save(workflow); err != nil {
 					log.Println("Failed to save workflow", workflow, err)
 					continue
 				}
@@ -113,7 +117,7 @@ func handleDevices(devchan <-chan *UdevDevice) {
 	}
 }
 
-func handleIngestRequests(targets []string, inchan <-chan *model.Workflow) {
+func handleIngestRequests(workflowManager model.WorkflowManager, targets []string, inchan <-chan *model.Workflow) {
 	for workflow := range inchan {
 		log.Println("Ingesting", workflow)
 
@@ -140,11 +144,8 @@ func handleIngestRequests(targets []string, inchan <-chan *model.Workflow) {
 		}
 
 		if err == nil {
-			log.Println("removing files")
-			for _, file := range workflow.Files {
-				os.Remove(file.Filename)
-			}
-			os.Remove(workflow.JsonFile())
+			log.Println("cleaning workflow")
+			workflowManager.Clean(workflow)
 		}
 	}
 }

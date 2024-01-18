@@ -2,114 +2,113 @@ package model
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io/fs"
 	"log"
 	"os"
-	"path"
-	"strings"
 )
 
 type MkvFile struct {
-	Filename   string `json:"filename"`
-	Shasum     string `json:"shasum"`
-	Resolution string `json:"resolution"`
+	Filename   string
+	Shasum     string
+	Resolution string
 }
 
 type Workflow struct {
-	Id    string    `json:"-"`
-	Label string    `json:"label"`
-	Name  *string   `json:"name,omitempty"`
-	Year  *string   `json:"year,omitempty"`
-	Files []MkvFile `json:"files"`
-	dir   string    `json:"-"`
+	Id    string
+	Label string
+	Name  *string `json:",omitempty"`
+	Year  *string `json:",omitempty"`
+	Files []MkvFile
 }
 
-var dir = "."
-
-func SetDir(d string) {
-	dir = d
+type WorkflowManager interface {
+	NewWorkflow(id string, label string) *Workflow
+	GetWorkflow(id string) *Workflow
+	GetWorkflows() []*Workflow
+	Save(*Workflow) error
+	Clean(*Workflow) error
 }
 
-func LoadExistingWorkflows() []*Workflow {
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			err = os.MkdirAll(dir, 0775)
-			return []*Workflow{}
-		}
-		log.Fatal(err)
-	}
-
-	result := []*Workflow{}
-	for _, file := range files {
-		ext := path.Ext(file.Name())
-		if ext == ".json" {
-			log.Println("Found existing file:", file)
-			id := strings.TrimSuffix(file.Name(), path.Ext(file.Name()))
-			workflow, err := LoadWorkflow(id)
-			if err != nil {
-				log.Println("Failed to load workflow:", file, err)
-				continue
-			}
-
-			result = append(result, workflow)
-		}
-	}
-	return result
+type workflowManager struct {
+	workflows map[string]*Workflow
+	file      string
 }
 
-func NewWorkflow(id string, dir string, label string) *Workflow {
+func newWorkflow(id string, label string) *Workflow {
 	return &Workflow{
 		Id:    id,
 		Label: label,
 		Name:  nil,
 		Year:  nil,
 		Files: make([]MkvFile, 0),
-		dir:   dir,
 	}
 }
 
-func LoadWorkflow(id string) (*Workflow, error) {
-	file := path.Join(dir, id+".json")
-	w := NewWorkflow(id, dir, "")
-
-	bytes, err := os.ReadFile(file)
+func NewWorkflowManager(file string) WorkflowManager {
+	workflows, err := loadWorkflowJson(file)
 	if err != nil {
-		log.Println("Failed to read file:", file, err)
-		return nil, err
+		workflows = make(map[string]*Workflow)
 	}
-
-	err = json.Unmarshal(bytes, w)
-	if err != nil {
-		log.Println("Failed to unmarshal json:", file, err)
-		return nil, err
+	m := workflowManager{
+		workflows,
+		file,
 	}
-
-	return w, nil
+	return &m
 }
 
-func (t *Workflow) Save() error {
-	file := path.Join(t.dir, fmt.Sprintf("%s.json", t.Id))
-	if bytes, err := json.Marshal(*t); err != nil {
+func (m *workflowManager) NewWorkflow(id string, label string) *Workflow {
+	w, containsKey := m.workflows[id]
+	if containsKey {
+		// TODO throw an error?
+		return w
+	}
+	w = newWorkflow(id, label)
+	m.workflows[id] = w
+	m.Save(w)
+	return w
+}
+
+func (m *workflowManager) GetWorkflow(id string) *Workflow {
+	return m.workflows[id]
+}
+
+func (m *workflowManager) GetWorkflows() []*Workflow {
+	values := make([]*Workflow, 0, len(m.workflows))
+	for _, v := range m.workflows {
+		values = append(values, v)
+	}
+	return values
+}
+
+func (m *workflowManager) Save(w *Workflow) error {
+	if bytes, err := json.Marshal(m.workflows); err != nil {
 		return err
-	} else if err := os.WriteFile(file, bytes, 0664); err != nil {
+	} else if err := os.WriteFile(m.file, bytes, 0644); err != nil {
 		return err
 	} else {
 		return nil
 	}
 }
 
-func (t *Workflow) JsonFile() string {
-	return path.Join(t.dir, fmt.Sprintf("%s.json", t.Id))
+func (m *workflowManager) Clean(w *Workflow) error {
+	for _, file := range w.Files {
+		os.Remove(file.Filename)
+	}
+	return nil
 }
 
-func (t *Workflow) AddFiles(mkvFiles ...MkvFile) {
-	t.Files = append(t.Files, mkvFiles...)
-}
+func loadWorkflowJson(file string) (map[string]*Workflow, error) {
+	var out map[string]*Workflow
+	bytes, err := os.ReadFile(file)
+	if err != nil {
+		log.Println("Failed to read file:", file, err)
+		return nil, err
+	}
 
-func (t *Workflow) AddMovieDetails(name string, year string) {
-	t.Name = &name
-	t.Year = &year
+	err = json.Unmarshal(bytes, &out)
+	if err != nil {
+		log.Println("failed to unmarshal json:", file, err)
+		return nil, err
+	}
+
+	return out, nil
 }
