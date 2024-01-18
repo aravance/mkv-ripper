@@ -90,8 +90,8 @@ func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *UdevDe
 	for dev := range devchan {
 		if dev.Available() {
 			id := dev.Uuid()
-			workflow, new := workflowManager.NewWorkflow(id, dev.Label())
-			if !new {
+			w, ok := workflowManager.NewWorkflow(id, dev.Label())
+			if !ok {
 				log.Println("found existing workflow id")
 				continue
 			}
@@ -102,14 +102,16 @@ func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *UdevDe
 				continue
 			}
 
+			w.Status = model.StatusRipping
+			workflowManager.Save(w)
 			if file, err := ripFile(dev, 0, dir); err != nil {
 				log.Println("error ripping device", err)
 				continue
 			} else {
-				workflow.File = file
+				w.File = file
 
-				if err := workflowManager.Save(workflow); err != nil {
-					log.Println("failed to save workflow", workflow, err)
+				if err := workflowManager.Save(w); err != nil {
+					log.Println("failed to save workflow", w, err)
 					continue
 				}
 			}
@@ -128,6 +130,9 @@ func handleIngestRequests(workflowManager model.WorkflowManager, targets []strin
 			log.Println("no files to ingest")
 		}
 
+		workflow.Status = model.StatusImporting
+		workflowManager.Save(workflow)
+
 		var err error
 		for _, target := range targets {
 			ingester, err := ingest.NewIngester(target)
@@ -145,6 +150,8 @@ func handleIngestRequests(workflowManager model.WorkflowManager, targets []strin
 		if err == nil {
 			log.Println("cleaning workflow")
 			workflowManager.Clean(workflow)
+			workflow.Status = model.StatusDone
+			workflowManager.Save(workflow)
 		}
 	}
 }

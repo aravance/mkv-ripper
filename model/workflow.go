@@ -7,6 +7,16 @@ import (
 	"os"
 )
 
+type WorkflowStatus string
+
+const (
+	StatusDone      WorkflowStatus = "Done"
+	StatusImporting WorkflowStatus = "Importing"
+	StatusRipping   WorkflowStatus = "Ripping"
+	StatusPending   WorkflowStatus = "Pending"
+	StatusStart     WorkflowStatus = "Start"
+)
+
 type MkvFile struct {
 	Filename   string
 	Shasum     string
@@ -14,11 +24,12 @@ type MkvFile struct {
 }
 
 type Workflow struct {
-	Id    string
-	Label string
-	Name  *string  `json:",omitempty"`
-	Year  *string  `json:",omitempty"`
-	File  *MkvFile `json:",omitempty"`
+	Id     string
+	Label  string
+	Status WorkflowStatus
+	Name   *string  `json:",omitempty"`
+	Year   *string  `json:",omitempty"`
+	File   *MkvFile `json:",omitempty"`
 }
 
 type WorkflowManager interface {
@@ -36,11 +47,12 @@ type workflowManager struct {
 
 func newWorkflow(id string, label string) *Workflow {
 	return &Workflow{
-		Id:    id,
-		Label: label,
-		Name:  nil,
-		Year:  nil,
-		File:  nil,
+		Id:     id,
+		Label:  label,
+		Status: StatusStart,
+		Name:   nil,
+		Year:   nil,
+		File:   nil,
 	}
 }
 
@@ -62,8 +74,6 @@ func (m *workflowManager) NewWorkflow(id string, label string) (*Workflow, bool)
 		return w, false
 	}
 	w = newWorkflow(id, label)
-	m.workflows[id] = w
-	m.Save(w)
 	return w, true
 }
 
@@ -80,6 +90,8 @@ func (m *workflowManager) GetWorkflows() []*Workflow {
 }
 
 func (m *workflowManager) Save(w *Workflow) error {
+	m.workflows[w.Id] = w
+
 	if bytes, err := json.Marshal(m.workflows); err != nil {
 		return err
 	} else if err := os.WriteFile(m.file, bytes, 0644); err != nil {
