@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/aravance/go-makemkv"
@@ -28,7 +27,7 @@ func getResolution(file string) (string, error) {
 	}
 }
 
-func ripFile(device mkv.Device, titleId int, outdir string) (*model.MkvFile, error) {
+func ripFile(device makemkv.Device, titleId int, outdir string) (*model.MkvFile, error) {
 	ripdir, err := os.MkdirTemp(outdir, ".rip")
 	if err != nil {
 		log.Println("failed to make temp dir", err)
@@ -36,21 +35,25 @@ func ripFile(device mkv.Device, titleId int, outdir string) (*model.MkvFile, err
 	}
 	defer os.RemoveAll(ripdir)
 
-	opts := mkv.MkvOptions{
-		Progress:  mkv.Stropt("-same"),
-		Minlength: mkv.Intopt(3600),
+	opts := makemkv.MkvOptions{
+		Progress:  makemkv.Stropt("-same"),
+		Minlength: makemkv.Intopt(3600),
 		Noscan:    true,
 	}
-	log.Println("starting mkv")
-	statchan, err := mkv.Mkv(device, strconv.Itoa(titleId), ripdir, opts)
-	if err != nil {
-		log.Println("error ripping device", err)
-		return nil, err
-	}
+	log.Println("starting makemkv")
+	mkvjob := makemkv.Mkv(device, titleId, ripdir, opts)
 
-	log.Println("processing mkv output")
+	statchan := make(chan makemkv.Status)
+	mkvjob.Statuschan = statchan
+
+	log.Println("processing makemkv output")
 	for status := range statchan {
 		log.Println(status)
+	}
+
+	if err := mkvjob.Run(); err != nil {
+		log.Println("error ripping device", err)
+		return nil, err
 	}
 
 	if files, err := os.ReadDir(ripdir); err != nil {

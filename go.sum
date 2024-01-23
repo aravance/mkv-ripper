@@ -6,6 +6,12 @@ github.com/aravance/go-makemkv v0.0.0-20240115205133-bda2603dc30a h1:9OkNLq8ZCLF
 github.com/aravance/go-makemkv v0.0.0-20240115205133-bda2603dc30a/go.mod h1:l5AxkYNwZ/olSmFo5TxaQZR0PMIKkb2hIj/2u4bHiCU=
 github.com/aravance/go-makemkv v0.0.0-20240115212140-ab1e2d318d95 h1:htoZikhRI0BD8iEx5V/mcbC96GvIQDiyAbdlgnmm2N4=
 github.com/aravance/go-makemkv v0.0.0-20240115212140-ab1e2d318d95/go.mod h1:l5AxkYNwZ/olSmFo5TxaQZR0PMIKkb2hIj/2u4bHiCU=
+github.com/aravance/go-makemkv v0.0.0-20240122234115-bb892cbd6a5e h1:USa1j4b4S/HitTbdvKG4Qo4FvGA66sYOPjvaW0F24jk=
+github.com/aravance/go-makemkv v0.0.0-20240122234115-bb892cbd6a5e/go.mod h1:Np6bgDBibI7xAaW+apwsgJzeXGXbNfu5i3UYw5bPhfA=
+github.com/aravance/go-makemkv v0.0.0-20240122234502-75a9c753bc34 h1:AOkjymMhnnAiGY9XeVEXGWdOHv7tYai1ebstreZk2eA=
+github.com/aravance/go-makemkv v0.0.0-20240122234502-75a9c753bc34/go.mod h1:Np6bgDBibI7xAaW+apwsgJzeXGXbNfu5i3UYw5bPhfA=
+github.com/aravance/go-makemkv v0.0.0-20240123001330-1db5ec68f7c3 h1:E+4VZaIjChwwZ/cpnNnyMJM+KLijCdfgNzN5UtITxms=
+github.com/aravance/go-makemkv v0.0.0-20240123001330-1db5ec68f7c3/go.mod h1:Np6bgDBibI7xAaW+apwsgJzeXGXbNfu5i3UYw5bPhfA=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/farjump/go-libudev v0.0.0-20171109190736-8b0739cd6d0b h1:zMD1x/LqZnujKnuquz9rbl/P6HZomUj0YXD/yxEAXXM=
