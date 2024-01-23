@@ -2,9 +2,11 @@ package indexview
 
 import "github.com/aravance/mkv-ripper/view/layout"
 import "github.com/aravance/mkv-ripper/model"
+import "github.com/aravance/mkv-ripper/drive"
 
-templ Show(workflows []*model.Workflow) {
+templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
 	@layout.Base("mkv-ripper") {
+		<a href="/drive">Drive: { string(drivestat) }</a>
 		if len(workflows) == 0 {
 			<div>No workflows in progress</div>
 		} else {

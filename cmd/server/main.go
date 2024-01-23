@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/handler"
 	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
@@ -34,15 +35,16 @@ func main() {
 		log.SetOutput(logfile)
 	}
 
-	devchan := make(chan *UdevDevice)
+	devchan := make(chan *drive.UdevDevice)
 	defer close(devchan)
 
 	ingestchan := make(chan *model.Workflow, 10)
 	defer close(ingestchan)
 
-	listener := NewUdevListener(devchan)
-	listener.Start()
-	defer listener.Stop()
+	discdb := drive.NewJsonDiscDatabase(path.Join(OUT_DIR, "discs.json"))
+	driveManager := drive.NewUdevDeviceManager(discdb)
+	driveManager.Start()
+	defer driveManager.Stop()
 
 	workflowManager := model.NewWorkflowManager(path.Join(OUT_DIR, "workflows.json"))
 	for _, workflow := range workflowManager.GetWorkflows() {
@@ -61,10 +63,12 @@ func main() {
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 
-	indexHandler := handler.NewIndexHandler(workflowManager)
+	indexHandler := handler.NewIndexHandler(driveManager, workflowManager)
+	driveHandler := handler.NewDriveHandler(driveManager)
 	workflowHandler := handler.NewWorkflowHandler(workflowManager, ingestchan)
 
 	server.GET("/", indexHandler.GetIndex)
+	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
 	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
 
@@ -86,7 +90,7 @@ func main() {
 	}
 }
 
-func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *UdevDevice) {
+func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *drive.UdevDevice) {
 	for dev := range devchan {
 		if dev.Available() {
 			id := dev.Uuid()
@@ -105,7 +109,7 @@ func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *UdevDe
 			w.Status = model.StatusRipping
 			workflowManager.Save(w)
 			if file, err := ripFile(dev, 0, dir); err != nil {
-				log.Println("error ripping device", err)
+				log.Println("error ripping drive", err)
 				continue
 			} else {
 				w.File = file
