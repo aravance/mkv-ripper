@@ -1,5 +1,3 @@
-.MAIN: mkv-ripper
-
 all:   mkv-ripper
 
 bin/templ:
@@ -14,3 +12,5 @@ mkv-ripper: generate
 clean:
 	go clean github.com/aravance/mkv-ripper/cmd/server
 	rm -f mkv-ripper
+
+.PHONY: all bin/templ generate mkv-ripper clean
