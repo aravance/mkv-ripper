@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aravance/go-makemkv"
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/handler"
 	"github.com/aravance/mkv-ripper/ingest"
@@ -27,6 +28,47 @@ var targets = []string{
 	"/mnt/nas/plex",
 }
 
+type discHandler struct {
+	discdb          drive.DiscDatabase
+	driveManager    drive.DriveManager
+	workflowManager model.WorkflowManager
+}
+
+func (h *discHandler) handleDisc(disc *drive.Disc) {
+	if disc == nil {
+		return
+	}
+
+	var info *makemkv.DiscInfo
+	var found bool
+	var err error
+	info, found = h.discdb.GetDiscInfo(disc.Uuid)
+	if !found {
+		info, err = h.driveManager.GetDiscInfo()
+		if err != nil {
+			log.Println("error getting disc info:", disc, "err:", err)
+		}
+		err = h.discdb.SaveDiscInfo(disc.Uuid, info)
+		if err != nil {
+			log.Println("error saving disc info:", disc, "err:", err)
+		}
+		// TODO kick off rip
+	}
+}
+
+func GuessMainTitle(info *makemkv.DiscInfo) *makemkv.TitleInfo {
+	if info == nil || len(info.Titles) == 0 {
+		return nil
+	}
+
+	for _, t := range info.Titles {
+		if t.SourceFileName == "00800.mpls" {
+			return &t
+		}
+	}
+	return &info.Titles[0]
+}
+
 func main() {
 	if logfile, err := os.OpenFile(LOG_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)
@@ -38,12 +80,17 @@ func main() {
 	ingestchan := make(chan *model.Workflow, 10)
 	defer close(ingestchan)
 
+	dischandler := &discHandler{}
 	discdb := drive.NewJsonDiscDatabase(path.Join(OUT_DIR, "discs.json"))
-	driveManager := drive.NewUdevDeviceManager(discdb)
+	driveManager := drive.NewUdevDriveManager(dischandler.handleDisc)
+	workflowManager := model.NewWorkflowManager(path.Join(OUT_DIR, "workflows.json"))
+
+	dischandler.discdb = discdb
+	dischandler.driveManager = driveManager
+
 	driveManager.Start()
 	defer driveManager.Stop()
 
-	workflowManager := model.NewWorkflowManager(path.Join(OUT_DIR, "workflows.json"))
 	for _, workflow := range workflowManager.GetWorkflows() {
 		go func(w *model.Workflow) {
 			if w.Name != nil && w.Year != nil {
@@ -60,7 +107,7 @@ func main() {
 	server.Use(middleware.Recover())
 
 	indexHandler := handler.NewIndexHandler(driveManager, workflowManager)
-	driveHandler := handler.NewDriveHandler(driveManager)
+	driveHandler := handler.NewDriveHandler(discdb, driveManager)
 	workflowHandler := handler.NewWorkflowHandler(workflowManager, ingestchan)
 
 	server.GET("/", indexHandler.GetIndex)

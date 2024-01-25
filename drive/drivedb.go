@@ -9,15 +9,15 @@ import (
 )
 
 type DiscDatabase interface {
-	GetDiscInfo(string) (info makemkv.DiscInfo, ok bool)
-	SaveDiscInfo(string, makemkv.DiscInfo) error
+	GetDiscInfo(string) (info *makemkv.DiscInfo, ok bool)
+	SaveDiscInfo(string, *makemkv.DiscInfo) error
 }
 
 func NewJsonDiscDatabase(file string) DiscDatabase {
 	discInfoMap, err := loadDiscInfoJson(file)
 	if err != nil {
 		log.Printf("failed to load previous disc info")
-		discInfoMap = make(map[string]makemkv.DiscInfo)
+		discInfoMap = make(map[string]*makemkv.DiscInfo)
 	}
 	return &jsonDiscDatabase{
 		file,
@@ -27,15 +27,15 @@ func NewJsonDiscDatabase(file string) DiscDatabase {
 
 type jsonDiscDatabase struct {
 	file        string
-	discInfoMap map[string]makemkv.DiscInfo
+	discInfoMap map[string]*makemkv.DiscInfo
 }
 
-func (d *jsonDiscDatabase) GetDiscInfo(id string) (info makemkv.DiscInfo, ok bool) {
+func (d *jsonDiscDatabase) GetDiscInfo(id string) (info *makemkv.DiscInfo, ok bool) {
 	info, ok = d.discInfoMap[id]
 	return info, ok
 }
 
-func (d *jsonDiscDatabase) SaveDiscInfo(id string, info makemkv.DiscInfo) error {
+func (d *jsonDiscDatabase) SaveDiscInfo(id string, info *makemkv.DiscInfo) error {
 	d.discInfoMap[id] = info
 
 	if bytes, err := json.Marshal(d.discInfoMap); err != nil {
@@ -47,7 +47,7 @@ func (d *jsonDiscDatabase) SaveDiscInfo(id string, info makemkv.DiscInfo) error 
 	}
 }
 
-func loadDiscInfoJson(file string) (infomap map[string]makemkv.DiscInfo, err error) {
+func loadDiscInfoJson(file string) (infomap map[string]*makemkv.DiscInfo, err error) {
 	bytes, err := os.ReadFile(file)
 	if err != nil {
 		log.Println("Failed to read file:", file, err)

@@ -9,18 +9,20 @@ import (
 
 type DriveHandler struct {
 	driveManager drive.DriveManager
+	discdb       drive.DiscDatabase
 }
 
-func NewDriveHandler(driveManager drive.DriveManager) DriveHandler {
-	return DriveHandler{driveManager}
+func NewDriveHandler(discdb drive.DiscDatabase, driveManager drive.DriveManager) DriveHandler {
+	return DriveHandler{driveManager, discdb}
 }
 
 func (d DriveHandler) GetDrive(c echo.Context) error {
 	status := d.driveManager.Status()
 	found := false
-	var info makemkv.DiscInfo
+	var info *makemkv.DiscInfo
 	if status == drive.StatusReady || status == drive.StatusMkv {
-		info, found = d.driveManager.GetDiscInfo()
+		disc := d.driveManager.GetDisc()
+		info, found = d.discdb.GetDiscInfo(disc.Uuid)
 	}
 	return render(c, driveview.Show(status, info, found))
 }

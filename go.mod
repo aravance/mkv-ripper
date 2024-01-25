@@ -3,7 +3,7 @@ module github.com/aravance/mkv-ripper
 go 1.21.6
 
 require (
-	github.com/aravance/go-makemkv v0.0.0-20240123001330-1db5ec68f7c3
+	github.com/aravance/go-makemkv v0.0.0-20240125032806-46f938e4ebff
 	github.com/farjump/go-libudev v0.0.0-20171109190736-8b0739cd6d0b
 	github.com/google/uuid v1.4.0
 	github.com/labstack/echo/v4 v4.11.4

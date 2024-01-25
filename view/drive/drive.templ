@@ -5,7 +5,7 @@ import "github.com/aravance/mkv-ripper/drive"
 import "github.com/aravance/go-makemkv"
 import "fmt"
 
-templ Show(status drive.DriveStatus, info makemkv.DiscInfo, found bool) {
+templ Show(status drive.DriveStatus, info *makemkv.DiscInfo, found bool) {
 	@layout.Base("mkv-ripper") {
 		switch status {
 			case drive.StatusEmpty:
@@ -13,7 +13,7 @@ templ Show(status drive.DriveStatus, info makemkv.DiscInfo, found bool) {
 			case drive.StatusReading:
 				<div>Reading info</div>
 			case drive.StatusReady:
-				if found {
+				if found && info != nil {
 					<div>{ fmt.Sprintf("%#v", info) }</div>
 				} else {
 					<div>Something went wrong reading the disc</div>
