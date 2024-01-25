@@ -35,9 +35,6 @@ func main() {
 		log.SetOutput(logfile)
 	}
 
-	devchan := make(chan *drive.UdevDevice)
-	defer close(devchan)
-
 	ingestchan := make(chan *model.Workflow, 10)
 	defer close(ingestchan)
 
@@ -55,7 +52,6 @@ func main() {
 		}(workflow)
 	}
 
-	go handleDevices(workflowManager, devchan)
 	go handleIngestRequests(workflowManager, targets, ingestchan)
 
 	server := echo.New()
@@ -87,41 +83,6 @@ func main() {
 	defer shutdownRelease()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalln("server shutdown error", err)
-	}
-}
-
-func handleDevices(workflowManager model.WorkflowManager, devchan <-chan *drive.UdevDevice) {
-	for dev := range devchan {
-		if dev.Available() {
-			id := dev.Uuid()
-			w, ok := workflowManager.NewWorkflow(id, dev.Label())
-			if !ok {
-				log.Println("found existing workflow id")
-				continue
-			}
-
-			dir := path.Join(OUT_DIR, id)
-			if err := os.MkdirAll(dir, 0775); err != nil {
-				log.Println("error making file directory", err)
-				continue
-			}
-
-			w.Status = model.StatusRipping
-			workflowManager.Save(w)
-			if file, err := ripFile(dev, 0, dir); err != nil {
-				log.Println("error ripping drive", err)
-				continue
-			} else {
-				w.File = file
-
-				if err := workflowManager.Save(w); err != nil {
-					log.Println("failed to save workflow", w, err)
-					continue
-				}
-			}
-		} else {
-			log.Println("unavailable device", dev)
-		}
 	}
 }
 

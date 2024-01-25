@@ -27,23 +27,20 @@ type DriveManager interface {
 
 type driveManager struct {
 	discdb       DiscDatabase
-	devchan      chan *UdevDevice
-	udevListener *UdevListener
-	wg           sync.WaitGroup
+	udevListener *udevListener
 	mutex        sync.Mutex
 	started      bool
-	device       *UdevDevice
+	device       *udevDevice
 	status       DriveStatus
 }
 
 func NewUdevDeviceManager(discdb DiscDatabase) DriveManager {
-	devchan := make(chan *UdevDevice)
-	return &driveManager{
-		discdb:       discdb,
-		devchan:      devchan,
-		udevListener: NewUdevListener(devchan),
-		status:       StatusEmpty,
+	m := driveManager{
+		discdb: discdb,
+		status: StatusEmpty,
 	}
+	m.udevListener = newUdevListener(m.onDevice)
+	return &m
 }
 
 func (m *driveManager) Status() DriveStatus {
@@ -67,40 +64,36 @@ func (m *driveManager) Start() error {
 
 	m.udevListener.Start()
 	m.started = true
-	m.wg.Add(1)
-	go func() {
-		defer m.wg.Done()
-
-		for dev := range m.devchan {
-			if m.device == nil || dev.Device() == m.device.Device() {
-				if !dev.Available() {
-					m.device = nil
-					m.status = StatusEmpty
-				} else {
-					m.device = dev
-					_, ok := m.discdb.GetDiscInfo(dev.Uuid())
-					if !ok {
-						m.status = StatusReading
-						job := makemkv.Info(dev, makemkv.MkvOptions{})
-						if info, err := job.Run(); err != nil {
-							log.Println("error running makemkv info", err)
-						} else {
-							m.discdb.SaveDiscInfo(dev.Uuid(), *info)
-						}
-						m.status = StatusReady
-					}
-					// TODO notify?
-				}
-			}
-		}
-	}()
 	return nil
 }
 
+func (m *driveManager) onDevice(dev *udevDevice) {
+	if m.device == nil || dev.Device() == m.device.Device() {
+		if !dev.Available() {
+			m.device = nil
+			m.status = StatusEmpty
+		} else {
+			m.device = dev
+			_, ok := m.discdb.GetDiscInfo(dev.Uuid())
+			if !ok {
+				m.status = StatusReading
+				job := makemkv.Info(dev, makemkv.MkvOptions{})
+				m.status = StatusReady
+				if info, err := job.Run(); err != nil {
+					log.Println("error running makemkv info", err)
+				} else {
+					m.discdb.SaveDiscInfo(dev.Uuid(), *info)
+				}
+			} else {
+				m.status = StatusReady
+			}
+			// TODO notify?
+		}
+	}
+}
+
 func (m *driveManager) Stop() error {
-	close(m.devchan)
 	m.udevListener.Stop()
-	m.wg.Wait()
 	return nil
 }
 
