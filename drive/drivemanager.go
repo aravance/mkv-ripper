@@ -118,12 +118,15 @@ func (m *driveManager) RipFile(title *makemkv.TitleInfo, outdir string) (*model.
 	mkvjob := makemkv.Mkv(m.device, title.Id, ripdir, opts)
 
 	statchan := make(chan makemkv.Status)
+	defer close(statchan)
 	mkvjob.Statuschan = statchan
 
 	log.Println("processing makemkv output")
-	for status := range statchan {
-		log.Println(status)
-	}
+	go func() {
+		for status := range statchan {
+			log.Println(status)
+		}
+	}()
 
 	if err := mkvjob.Run(); err != nil {
 		log.Println("error ripping device", err)
