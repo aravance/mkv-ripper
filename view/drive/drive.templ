@@ -2,24 +2,30 @@ package driveview
 
 import "github.com/aravance/mkv-ripper/view/layout"
 import "github.com/aravance/mkv-ripper/drive"
-import "github.com/aravance/go-makemkv"
+import "github.com/eefret/gomdb"
 import "fmt"
 
-templ Show(status drive.DriveStatus, info *makemkv.DiscInfo, found bool) {
+templ Show(status drive.DriveStatus, info *gomdb.MovieResult) {
 	@layout.Base("mkv-ripper") {
-		switch status {
-			case drive.StatusEmpty:
-				<div>No disc</div>
-			case drive.StatusReading:
-				<div>Reading info</div>
-			case drive.StatusReady:
-				if found && info != nil {
-					<div>{ fmt.Sprintf("%#v", info) }</div>
-				} else {
-					<div>Something went wrong reading the disc</div>
+		if status == drive.StatusEmpty {
+			<div>No disc</div>
+		} else if status == drive.StatusReading {
+			<div>Reading info</div>
+		} else if info == nil {
+			<div>Unknown status</div>
+		} else {
+			<div>
+				<img src={ info.Poster } alt="movie poster"/>
+				<a href={ templ.SafeURL(fmt.Sprintf("https://www.imdb.com/title/%s", info.ImdbID)) }>
+					{ info.Title } - { info.Year }
+				</a>
+				if status == drive.StatusMkv {
+					<div>
+						<span class="spinner-border spinner-border-sm" id="spinner" role="status" aria-hidden="true"></span>
+						Ripping
+					</div>
 				}
-			case drive.StatusMkv:
-				<div>Ripping</div>
+			</div>
 		}
 	}
 }

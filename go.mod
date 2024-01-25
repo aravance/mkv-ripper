@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/a-h/templ v0.2.513 // indirect
+	github.com/eefret/gomdb v0.0.0-20171206153129-8a1e0abd4449 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect

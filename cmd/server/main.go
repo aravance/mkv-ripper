@@ -16,12 +16,14 @@ import (
 	"github.com/aravance/mkv-ripper/handler"
 	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
+	"github.com/eefret/gomdb"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 const LOG_FILE = "./mkv.log"
 const OUT_DIR = "."
+const API_KEY = ""
 
 var targets = []string{
 	"ssh://plexbot/plex",
@@ -56,19 +58,6 @@ func (h *discHandler) handleDisc(disc *drive.Disc) {
 	}
 }
 
-func GuessMainTitle(info *makemkv.DiscInfo) *makemkv.TitleInfo {
-	if info == nil || len(info.Titles) == 0 {
-		return nil
-	}
-
-	for _, t := range info.Titles {
-		if t.SourceFileName == "00800.mpls" {
-			return &t
-		}
-	}
-	return &info.Titles[0]
-}
-
 func main() {
 	if logfile, err := os.OpenFile(LOG_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)
@@ -80,6 +69,7 @@ func main() {
 	ingestchan := make(chan *model.Workflow, 10)
 	defer close(ingestchan)
 
+	omdbapi := gomdb.Init(API_KEY)
 	dischandler := &discHandler{}
 	discdb := drive.NewJsonDiscDatabase(path.Join(OUT_DIR, "discs.json"))
 	driveManager := drive.NewUdevDriveManager(dischandler.handleDisc)
