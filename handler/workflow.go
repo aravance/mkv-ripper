@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
 	workflowview "github.com/aravance/mkv-ripper/view/workflow"
 	"github.com/labstack/echo/v4"
@@ -11,11 +12,14 @@ import (
 
 type WorkflowHandler struct {
 	workflowManager model.WorkflowManager
-	inchan          chan *model.Workflow
+	ingestHandler   *ingest.IngestHandler
 }
 
-func NewWorkflowHandler(workflowManager model.WorkflowManager, inchan chan *model.Workflow) WorkflowHandler {
-	return WorkflowHandler{workflowManager, inchan}
+func NewWorkflowHandler(workflowManager model.WorkflowManager, ingestHandler *ingest.IngestHandler) WorkflowHandler {
+	return WorkflowHandler{
+		workflowManager: workflowManager,
+		ingestHandler:   ingestHandler,
+	}
 }
 
 func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
@@ -54,9 +58,7 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	}
 
 	if w.File != nil {
-		go func(w *model.Workflow) {
-			h.inchan <- w
-		}(w)
+		go h.ingestHandler.IngestWorkflow(w)
 		return c.String(http.StatusOK, "Import started")
 	} else {
 		return c.String(http.StatusOK, "Import will begin once the files are ready")
