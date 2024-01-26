@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/aravance/mkv-ripper/drive"
+	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
 	driveview "github.com/aravance/mkv-ripper/view/drive"
 	"github.com/eefret/gomdb"
@@ -11,13 +12,14 @@ import (
 )
 
 type DriveHandler struct {
-	driveManager drive.DriveManager
-	discdb       drive.DiscDatabase
-	omdbapi      *gomdb.OmdbApi
+	driveManager    drive.DriveManager
+	workflowManager model.WorkflowManager
+	discdb          drive.DiscDatabase
+	omdbapi         *gomdb.OmdbApi
 }
 
-func NewDriveHandler(discdb drive.DiscDatabase, driveManager drive.DriveManager, omdbapi *gomdb.OmdbApi) DriveHandler {
-	return DriveHandler{driveManager, discdb, omdbapi}
+func NewDriveHandler(discdb drive.DiscDatabase, driveManager drive.DriveManager, workflowManager model.WorkflowManager, omdbapi *gomdb.OmdbApi) DriveHandler {
+	return DriveHandler{driveManager, workflowManager, discdb, omdbapi}
 }
 
 func (d DriveHandler) GetDrive(c echo.Context) error {
@@ -28,9 +30,7 @@ func (d DriveHandler) GetDrive(c echo.Context) error {
 		info, found := d.discdb.GetDiscInfo(disc.Uuid)
 		if found {
 			main := util.GuessMainTitle(info)
-			movie, _ = d.omdbapi.MovieByTitle(&gomdb.QueryData{
-				Title: main.Name,
-			})
+			movie, _ = util.GetMovie(d.omdbapi, main.Name)
 			if movie != nil {
 				log.Println("got movie", *movie)
 			} else {
@@ -38,5 +38,20 @@ func (d DriveHandler) GetDrive(c echo.Context) error {
 			}
 		}
 	}
-	return render(c, driveview.Show(status, movie))
+	var wf *model.Workflow
+	if d.driveManager.HasDisc() {
+		disc := d.driveManager.GetDisc()
+		wf = d.workflowManager.GetWorkflow(disc.Uuid)
+	}
+	return render(c, driveview.Show(status, wf, movie))
+}
+
+func (d DriveHandler) GetDriveStatus(c echo.Context) error {
+	status := d.driveManager.Status()
+	var wf *model.Workflow
+	if d.driveManager.HasDisc() {
+		disc := d.driveManager.GetDisc()
+		wf = d.workflowManager.GetWorkflow(disc.Uuid)
+	}
+	return render(c, driveview.Status(status, wf))
 }

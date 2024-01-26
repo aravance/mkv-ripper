@@ -84,9 +84,8 @@ func (h *IngestHandler) HandleDisc(disc *drive.Disc) {
 		}
 
 		main := util.GuessMainTitle(info)
-		movie, err := h.omdbapi.MovieByTitle(&gomdb.QueryData{Title: main.Name})
+		movie, err := util.GetMovie(h.omdbapi, main.Name)
 		if err != nil {
-			log.Println("error fetching movie:", main.Name, "err:", err)
 			return
 		}
 
@@ -104,7 +103,16 @@ func (h *IngestHandler) HandleDisc(disc *drive.Disc) {
 			return
 		}
 
-		f, err := h.driveManager.RipFile(main, dir)
+		statchan := make(chan makemkv.Status)
+		defer close(statchan)
+
+		go func() {
+			for stat := range statchan {
+				wf.MkvStatus = &stat
+			}
+		}()
+
+		f, err := h.driveManager.RipFile(main, dir, statchan)
 		if err != nil {
 			log.Println("error ripping:", wf, "err:", err)
 			return

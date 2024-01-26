@@ -35,7 +35,7 @@ type DriveManager interface {
 	Start() error
 	Stop() error
 	Status() DriveStatus
-	RipFile(title *makemkv.TitleInfo, outdir string) (*model.MkvFile, error)
+	RipFile(title *makemkv.TitleInfo, outdir string, outchan chan makemkv.Status) (*model.MkvFile, error)
 }
 
 func NewUdevDriveManager(onDisc func(*Disc)) DriveManager {
@@ -88,7 +88,7 @@ func (m *driveManager) GetDiscInfo() (*makemkv.DiscInfo, error) {
 	}
 }
 
-func (m *driveManager) RipFile(title *makemkv.TitleInfo, outdir string) (*model.MkvFile, error) {
+func (m *driveManager) RipFile(title *makemkv.TitleInfo, outdir string, statchan chan makemkv.Status) (*model.MkvFile, error) {
 	if m.device == nil || !m.device.Available() {
 		return nil, fmt.Errorf("no device available")
 	}
@@ -116,68 +116,44 @@ func (m *driveManager) RipFile(title *makemkv.TitleInfo, outdir string) (*model.
 	}
 	log.Println("starting makemkv")
 	mkvjob := makemkv.Mkv(m.device, title.Id, ripdir, opts)
-
-	statchan := make(chan makemkv.Status)
-	defer close(statchan)
 	mkvjob.Statuschan = statchan
-
-	log.Println("processing makemkv output")
-	go func() {
-		for status := range statchan {
-			log.Println(status)
-		}
-	}()
 
 	if err := mkvjob.Run(); err != nil {
 		log.Println("error ripping device", err)
 		return nil, err
 	}
 
-	if files, err := os.ReadDir(ripdir); err != nil {
-		log.Println("error opening dir", ripdir, err)
+	oldfile := path.Join(ripdir, title.FileName)
+	log.Println("starting sha256sum for " + oldfile)
+	shasum, err := util.Sha256sum(oldfile)
+	if err != nil {
+		log.Println("error in sha256sum for " + oldfile)
 		return nil, err
 	} else {
-		if len(files) == 0 {
-			log.Println("no files found after ripping")
-			return nil, nil
-		} else if len(files) > 1 {
-			log.Println("too many files found after ripping")
-			return nil, nil
-		} else {
-			file := files[0]
-			oldfile := path.Join(ripdir, file.Name())
-			log.Println("starting sha256sum for " + oldfile)
-			shasum, err := util.Sha256sum(oldfile)
-			if err != nil {
-				log.Println("error in sha256sum for " + oldfile)
-				return nil, err
-			} else {
-				log.Println("sha256sum " + file.Name() + ": " + shasum)
+		log.Println("sha256sum " + title.FileName + ": " + shasum)
+	}
+
+	newfile := path.Join(outdir, title.FileName)
+	os.Rename(oldfile, newfile)
+
+	resolution := "unknown"
+	if len(title.VideoStreams) > 0 {
+		_, height, ok := strings.Cut(title.VideoStreams[0].VideoSize, "x")
+		if ok {
+			switch height {
+			case "2160":
+				resolution = "4k"
+			default:
+				resolution = fmt.Sprintf("%sp", height)
 			}
-
-			newfile := path.Join(outdir, file.Name())
-			os.Rename(oldfile, newfile)
-
-			resolution := "unknown"
-			if len(title.VideoStreams) > 0 {
-				_, height, ok := strings.Cut(title.VideoStreams[0].VideoSize, "x")
-				if ok {
-					switch height {
-					case "2160":
-						resolution = "4k"
-					default:
-						resolution = fmt.Sprintf("%sp", height)
-					}
-				}
-			}
-
-			return &model.MkvFile{
-				Filename:   newfile,
-				Shasum:     shasum,
-				Resolution: resolution,
-			}, nil
 		}
 	}
+
+	return &model.MkvFile{
+		Filename:   newfile,
+		Shasum:     shasum,
+		Resolution: resolution,
+	}, nil
 }
 
 func (m *driveManager) Start() error {

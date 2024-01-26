@@ -1,11 +1,13 @@
 package driveview
 
-import "github.com/aravance/mkv-ripper/view/layout"
-import "github.com/aravance/mkv-ripper/drive"
-import "github.com/eefret/gomdb"
 import "fmt"
+import "github.com/aravance/mkv-ripper/drive"
+import "github.com/aravance/mkv-ripper/model"
+import "github.com/aravance/mkv-ripper/view/layout"
+import "github.com/eefret/gomdb"
+import "strconv"
 
-templ Show(status drive.DriveStatus, info *gomdb.MovieResult) {
+templ Show(status drive.DriveStatus, wf *model.Workflow, info *gomdb.MovieResult) {
 	@layout.Base("mkv-ripper") {
 		if status == drive.StatusEmpty {
 			<div>No disc</div>
@@ -19,13 +21,28 @@ templ Show(status drive.DriveStatus, info *gomdb.MovieResult) {
 				<a href={ templ.SafeURL(fmt.Sprintf("https://www.imdb.com/title/%s", info.ImdbID)) }>
 					{ info.Title } - { info.Year }
 				</a>
-				if status == drive.StatusMkv {
-					<div>
-						<span class="spinner-border spinner-border-sm" id="spinner" role="status" aria-hidden="true"></span>
-						Ripping
-					</div>
-				}
+				@Status(status, wf)
 			</div>
 		}
 	}
+}
+
+templ Status(status drive.DriveStatus, wf *model.Workflow) {
+	<div hx-get="/drive/status" hx-trigger="every 2s">
+		if status == drive.StatusEmpty {
+			No disc
+		} else if status == drive.StatusReading {
+			Reading disc
+		} else if status == drive.StatusReady {
+			Ready
+		} else if status == drive.StatusMkv {
+			<span class="spinner-border spinner-border-sm" id="spinner" role="status" aria-hidden="true"></span>
+			Ripping -
+			if wf != nil {
+				{ strconv.Itoa(wf.MkvStatus.Total * 100 / wf.MkvStatus.Max) }%
+			}
+		} else {
+			Unknown
+		}
+	</div>
 }

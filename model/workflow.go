@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"os"
+
+	"github.com/aravance/go-makemkv"
 )
 
 type WorkflowStatus string
@@ -24,12 +26,13 @@ type MkvFile struct {
 }
 
 type Workflow struct {
-	Id     string
-	Label  string
-	Status WorkflowStatus
-	Name   *string  `json:",omitempty"`
-	Year   *string  `json:",omitempty"`
-	File   *MkvFile `json:",omitempty"`
+	Id        string
+	Label     string
+	Status    WorkflowStatus
+	MkvStatus *makemkv.Status `json:"-"`
+	Name      *string         `json:",omitempty"`
+	Year      *string         `json:",omitempty"`
+	File      *MkvFile        `json:",omitempty"`
 }
 
 type WorkflowManager interface {

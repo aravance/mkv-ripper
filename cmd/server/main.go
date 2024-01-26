@@ -62,11 +62,12 @@ func main() {
 	server.Use(middleware.Recover())
 
 	indexHandler := handler.NewIndexHandler(driveman, wfman)
-	driveHandler := handler.NewDriveHandler(discdb, driveman, omdbapi)
+	driveHandler := handler.NewDriveHandler(discdb, driveman, wfman, omdbapi)
 	workflowHandler := handler.NewWorkflowHandler(wfman, dh)
 
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/drive", driveHandler.GetDrive)
+	server.GET("/drive/status", driveHandler.GetDriveStatus)
 	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
 	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
 
