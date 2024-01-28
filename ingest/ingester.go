@@ -12,11 +12,7 @@ type Ingester interface {
 	Ingest(mkv model.MkvFile, name string, year string) error
 }
 
-func NewIngester(uri string) (Ingester, error) {
-	u, err := url.Parse(uri)
-	if err != nil {
-		return nil, err
-	}
+func NewIngester(u *url.URL) (Ingester, error) {
 	switch u.Scheme {
 	case "", "file":
 		log.Println("file ingester", u)
@@ -25,6 +21,6 @@ func NewIngester(uri string) (Ingester, error) {
 		log.Println("ssh ingester", u)
 		return &SshIngester{u}, nil
 	default:
-		return nil, fmt.Errorf("unknown scheme: %s", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme: %s", u.Scheme)
 	}
 }

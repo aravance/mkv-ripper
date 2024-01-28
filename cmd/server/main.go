@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -20,17 +21,10 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-const LOG_FILE = "./mkv.log"
-const OUT_DIR = "."
-const API_KEY = ""
-
-var targets = []string{
-	"ssh://plexbot/plex",
-	"/mnt/nas/plex",
-}
-
 func main() {
-	if logfile, err := os.OpenFile(LOG_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
+	config := parseConfig()
+
+	if logfile, err := os.OpenFile(path.Join(config.Log, "mkv.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)
 	} else {
 		defer logfile.Close()
@@ -38,12 +32,20 @@ func main() {
 	}
 
 	dh := &ingest.IngestHandler{}
-	discdb := drive.NewJsonDiscDatabase(path.Join(OUT_DIR, "discs.json"))
+	discdb := drive.NewJsonDiscDatabase("discs.json")
 	driveman := drive.NewUdevDriveManager(dh.HandleDisc)
-	wfman := model.NewWorkflowManager(path.Join(OUT_DIR, "workflows.json"))
-	omdbapi := gomdb.Init(API_KEY)
+	wfman := model.NewWorkflowManager("workflows.json")
+	omdbapi := gomdb.Init(config.Omdb.Apikey)
 
-	dh.Init(discdb, driveman, wfman, omdbapi, targets, OUT_DIR)
+	targets := make([]*url.URL, len(config.Targets))
+	for i, t := range config.Targets {
+		targets[i] = &url.URL{
+			Scheme: t.Scheme,
+			Host:   t.Host,
+			Path:   t.Path,
+		}
+	}
+	dh.Init(discdb, driveman, wfman, omdbapi, targets, config.Rip)
 
 	driveman.Start()
 	defer driveman.Stop()

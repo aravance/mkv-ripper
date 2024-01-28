@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"log"
+	"net/url"
 	"os"
 	"path"
 
@@ -17,11 +18,11 @@ type IngestHandler struct {
 	driveManager    drive.DriveManager
 	workflowManager model.WorkflowManager
 	omdbapi         *gomdb.OmdbApi
-	targets         []string
+	targets         []*url.URL
 	outdir          string
 }
 
-func (h *IngestHandler) Init(discdb drive.DiscDatabase, driveManager drive.DriveManager, workflowManager model.WorkflowManager, omdbapi *gomdb.OmdbApi, targets []string, outdir string) {
+func (h *IngestHandler) Init(discdb drive.DiscDatabase, driveManager drive.DriveManager, workflowManager model.WorkflowManager, omdbapi *gomdb.OmdbApi, targets []*url.URL, outdir string) {
 	h.discdb = discdb
 	h.driveManager = driveManager
 	h.workflowManager = workflowManager
