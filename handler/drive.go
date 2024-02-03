@@ -28,9 +28,13 @@ func (d DriveHandler) GetDrive(c echo.Context) error {
 	if status == drive.StatusReady || status == drive.StatusMkv {
 		disc := d.driveManager.GetDisc()
 		info, found := d.discdb.GetDiscInfo(disc.Uuid)
-		if found {
-			main := util.GuessMainTitle(info)
-			movie, _ = util.GetMovie(d.omdbapi, main.Name)
+		if found && info.Name != info.VolumeName {
+			main, name := util.GuessMainTitleAndName(info)
+			if main != nil {
+				movie, _ = util.GetMovie(d.omdbapi, name)
+			} else {
+				log.Println("failed to guess title and name")
+			}
 			if movie != nil {
 				log.Println("got movie", *movie)
 			} else {

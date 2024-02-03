@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/aravance/go-makemkv"
 	"github.com/eefret/gomdb"
 )
 
@@ -22,4 +23,27 @@ func GetMovie(api *gomdb.OmdbApi, name string) (movie *gomdb.MovieResult, err er
 	}
 
 	return movie, err
+}
+
+func GuessMainTitleAndName(info *makemkv.DiscInfo) (title *makemkv.TitleInfo, name string) {
+	if info == nil || len(info.Titles) == 0 {
+		return
+	}
+
+	for _, t := range info.Titles {
+		if t.SourceFileName == "00800.mpls" {
+			title = &t
+			break
+		}
+	}
+	if title == nil {
+		title = &info.Titles[0]
+	}
+	if title != nil && title.Name != "" {
+		name = title.Name
+	}
+	if info.Name != info.VolumeName {
+		name = info.Name
+	}
+	return
 }

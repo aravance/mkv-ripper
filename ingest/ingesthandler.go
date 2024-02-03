@@ -78,15 +78,22 @@ func (h *IngestHandler) HandleDisc(disc *drive.Disc) {
 		info, err = h.driveManager.GetDiscInfo()
 		if err != nil {
 			log.Println("error getting disc info:", disc, "err:", err)
+			return
 		}
 		err = h.discdb.SaveDiscInfo(disc.Uuid, info)
 		if err != nil {
 			log.Println("error saving disc info:", disc, "err:", err)
+			return
 		}
 
-		main := util.GuessMainTitle(info)
-		movie, err := util.GetMovie(h.omdbapi, main.Name)
+		main, name := util.GuessMainTitleAndName(info)
+		if main == nil {
+			log.Println("failed to guess main title or name")
+			return
+		}
+		movie, err := util.GetMovie(h.omdbapi, name)
 		if err != nil {
+			log.Println("failed to GetMovie", err)
 			return
 		}
 
