@@ -34,7 +34,7 @@ func main() {
 	dh := &ingest.IngestHandler{}
 	discdb := drive.NewJsonDiscDatabase("discs.json")
 	driveman := drive.NewUdevDriveManager(dh.HandleDisc)
-	wfman := model.NewWorkflowManager("workflows.json")
+	wfman := model.NewJsonWorkflowManager("workflows.json")
 	omdbapi := gomdb.Init(config.Omdb.Apikey)
 
 	targets := make([]*url.URL, len(config.Targets))
@@ -51,11 +51,13 @@ func main() {
 	defer driveman.Stop()
 
 	for _, workflow := range wfman.GetWorkflows() {
-		go func(w *model.Workflow) {
-			if w.Name != nil && w.Year != nil {
-				dh.IngestWorkflow(w)
-			}
-		}(workflow)
+		if workflow.Status == model.StatusImporting {
+			go func(w *model.Workflow) {
+				if w.Name != nil && w.Year != nil {
+					dh.IngestWorkflow(w)
+				}
+			}(workflow)
+		}
 	}
 
 	server := echo.New()

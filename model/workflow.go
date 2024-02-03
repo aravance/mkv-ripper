@@ -59,7 +59,7 @@ func newWorkflow(id string, label string) *Workflow {
 	}
 }
 
-func NewWorkflowManager(file string) WorkflowManager {
+func NewJsonWorkflowManager(file string) WorkflowManager {
 	workflows, err := loadWorkflowJson(file)
 	if err != nil {
 		workflows = make(map[string]*Workflow)
