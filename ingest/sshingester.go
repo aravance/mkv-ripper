@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/aravance/mkv-ripper/model"
 )
@@ -29,6 +30,10 @@ func (t *SshIngester) runCommand(cmd string) error {
 	}
 
 	return nil
+}
+
+func escapeSsh(s string) string {
+	return strings.ReplaceAll(s, `'`, `'\''`)
 }
 
 func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error {
@@ -55,40 +60,40 @@ func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error 
 	var cmd string
 
 	// check sha256sum
-	cmd = fmt.Sprintf("echo '%s  %s' | sha256sum -c", mkv.Shasum, ingestfile)
+	cmd = fmt.Sprintf("echo '%s  %s' | sha256sum -c", mkv.Shasum, escapeSsh(ingestfile))
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to verify checksum")
 		return err
 	}
 
 	// create directory
-	cmd = fmt.Sprintf("mkdir -p '%s'", newdir)
+	cmd = fmt.Sprintf("mkdir -p '%s'", escapeSsh(newdir))
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to mkdir", newdir)
 		return err
 	}
 
 	// fix permissions
-	cmd = fmt.Sprintf("chmod 775 '%s'", newdir)
+	cmd = fmt.Sprintf("chmod 775 '%s'", escapeSsh(newdir))
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to chmod dir", newdir)
 		return err
 	}
-	cmd = fmt.Sprintf("chmod 664 '%s'", ingestfile)
+	cmd = fmt.Sprintf("chmod 664 '%s'", escapeSsh(ingestfile))
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to chmod file", newdir)
 		return err
 	}
 
 	// add sha256sum to Movies.sha256
-	cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -o %s -m - %s", mkv.Shasum, moviedir, mkvfile, shafile, shafile)
+	cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -o %s -m - %s", mkv.Shasum, escapeSsh(moviedir), escapeSsh(mkvfile), shafile, shafile)
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to add shasum", newdir)
 		return err
 	}
 
 	// move Files
-	cmd = fmt.Sprintf("mv '%s' '%s'", ingestfile, newfile)
+	cmd = fmt.Sprintf("mv '%s' '%s'", escapeSsh(ingestfile), escapeSsh(newfile))
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to move files", newdir)
 		return err
