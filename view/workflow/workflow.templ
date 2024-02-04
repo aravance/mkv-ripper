@@ -36,3 +36,33 @@ templ Show(workflow *model.Workflow) {
 		<div id="response"></div>
 	}
 }
+
+templ Edit(workflow *model.Workflow) {
+	@layout.Base(workflow.Label) {
+		<main>
+			<div class="d-flex align-items-center py-4">
+				<div class="m-auto w-100" style="max-width: 330px;">
+					<h1 class="h3 mb-4 fw-normal">Edit</h1>
+					<form hx-get="/omdb/search" hx-trigger="load" hx-target="#results">
+						<div class="input-group">
+							<input
+								hx-get="/omdb/search"
+								hx-trigger="keyup changed delay:500ms"
+								hx-target="#results"
+								name="q"
+								placeholder="Search"
+								aria-label="Search"
+								aria-describedby="search-addon"
+								value={ templ.EscapeString(*workflow.Name) }
+							/>
+							<span class="input-group border-0" id="search-addon">
+								<i class="fas fa-search"></i>
+							</span>
+						</div>
+					</form>
+					<div id="results" class="vstack gap-3"></div>
+				</div>
+			</div>
+		</main>
+	}
+}

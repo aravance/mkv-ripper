@@ -75,7 +75,8 @@ func main() {
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
 	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
 	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
-	server.GET("/omdb/:query", omdbHandler.Search)
+	server.GET("/workflow/:id/edit", workflowHandler.EditWorkflow)
+	server.GET("/omdb/search", omdbHandler.Search)
 
 	go func() {
 		if err := server.Start(":8080"); !errors.Is(err, http.ErrServerClosed) {

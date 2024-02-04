@@ -31,6 +31,15 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 	return render(c, workflowview.Show(w))
 }
 
+func (h WorkflowHandler) EditWorkflow(c echo.Context) error {
+	id := c.Param("id")
+	w := h.workflowManager.GetWorkflow(id)
+	if w == nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+	return render(c, workflowview.Edit(w))
+}
+
 func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	id := c.Param("id")
 	w := h.workflowManager.GetWorkflow(id)

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log"
+	"strings"
 
 	omdbview "github.com/aravance/mkv-ripper/view/omdb"
 	"github.com/eefret/gomdb"
@@ -19,7 +20,10 @@ func NewOmdbHandler(omdbapi *gomdb.OmdbApi) OmdbHandler {
 }
 
 func (h OmdbHandler) Search(c echo.Context) error {
-	q := c.Param("query")
+	q := strings.TrimSpace(c.QueryParam("q"))
+	if q == "" {
+		return render(c, omdbview.Search(make([]*gomdb.MovieResult, 0)))
+	}
 	qd := &gomdb.QueryData{
 		Title:      q,
 		SearchType: "movie",
@@ -36,5 +40,5 @@ func (h OmdbHandler) Search(c echo.Context) error {
 			movies = append(movies, m)
 		}
 	}
-	return render(c, omdbview.Show(movies))
+	return render(c, omdbview.Search(movies))
 }

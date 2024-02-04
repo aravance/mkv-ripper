@@ -3,10 +3,8 @@ package omdbview
 import "github.com/eefret/gomdb"
 import "github.com/aravance/mkv-ripper/view/movie"
 
-templ Show(movies []*gomdb.MovieResult) {
-	<div>
-		for _, m := range movies {
-			@movieview.Movie(m)
-		}
-	</div>
+templ Search(movies []*gomdb.MovieResult) {
+	for _, m := range movies {
+		@movieview.Movie(m)
+	}
 }
