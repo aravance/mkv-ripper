@@ -1,29 +1,31 @@
 package driveview
 
-import "fmt"
 import "github.com/aravance/mkv-ripper/drive"
 import "github.com/aravance/mkv-ripper/model"
 import "github.com/aravance/mkv-ripper/view/layout"
+import "github.com/aravance/mkv-ripper/view/movie"
 import "github.com/eefret/gomdb"
 import "strconv"
 
 templ Show(status drive.DriveStatus, wf *model.Workflow, info *gomdb.MovieResult) {
 	@layout.Base("mkv-ripper") {
-		if status == drive.StatusEmpty {
-			<div>No disc</div>
-		} else if status == drive.StatusReading {
-			<div>Reading info</div>
-		} else if info == nil {
-			<div>Unknown status</div>
-		} else {
-			<div>
-				<img src={ info.Poster } alt="movie poster"/>
-				<a href={ templ.SafeURL(fmt.Sprintf("https://www.imdb.com/title/%s", info.ImdbID)) }>
-					{ info.Title } - { info.Year }
-				</a>
-				@Status(status, wf)
+		<div class="d-flex align-items-center py-4">
+			<div class="m-auto w-100" style="max-width: 330px;">
+				<h1 class="h3 mb-4 fw-normal">Drive</h1>
+				if status == drive.StatusEmpty {
+					<div>No disc</div>
+				} else if status == drive.StatusReading {
+					<div>Reading info</div>
+				} else if info == nil {
+					<div>Unknown status</div>
+				} else {
+					<div>
+						@movieview.Movie(info)
+						@Status(status, wf)
+					</div>
+				}
 			</div>
-		}
+		</div>
 	}
 }
 

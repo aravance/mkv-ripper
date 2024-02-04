@@ -68,12 +68,14 @@ func main() {
 	indexHandler := handler.NewIndexHandler(driveman, wfman)
 	driveHandler := handler.NewDriveHandler(discdb, driveman, wfman, omdbapi)
 	workflowHandler := handler.NewWorkflowHandler(wfman, dh)
+	omdbHandler := handler.NewOmdbHandler(omdbapi)
 
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
 	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
 	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
+	server.GET("/omdb/:query", omdbHandler.Search)
 
 	go func() {
 		if err := server.Start(":8080"); !errors.Is(err, http.ErrServerClosed) {
