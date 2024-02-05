@@ -6,8 +6,9 @@ import "github.com/aravance/mkv-ripper/view/layout"
 import "github.com/aravance/mkv-ripper/view/movie"
 import "github.com/eefret/gomdb"
 import "strconv"
+import "github.com/aravance/go-makemkv"
 
-templ Show(status drive.DriveStatus, wf *model.Workflow, info *gomdb.MovieResult) {
+templ Show(status drive.DriveStatus, wf *model.Workflow, movie *gomdb.MovieResult, info *makemkv.DiscInfo) {
 	@layout.Base("mkv-ripper") {
 		<div class="d-flex align-items-center py-4">
 			<div class="m-auto w-100" style="max-width: 330px;">
@@ -15,13 +16,30 @@ templ Show(status drive.DriveStatus, wf *model.Workflow, info *gomdb.MovieResult
 				if status == drive.StatusEmpty {
 					<div>No disc</div>
 				} else if status == drive.StatusReading {
-					<div>Reading info</div>
+					<div>Reading movie</div>
 				} else if info == nil {
-					<div>Unknown status</div>
+					<div>Failed to read disc</div>
 				} else {
 					<div>
-						@movieview.Movie(info)
 						@Status(status, wf)
+						if movie != nil {
+							@movieview.Movie(movie)
+						}
+						if info != nil {
+							<div>
+								for _, t := range info.Titles {
+									<h4>
+										if t.Name != "" {
+											{ strconv.Itoa(t.Id + 1) } - { t.Name }
+										} else {
+											Title { strconv.Itoa(t.Id + 1) }
+										}
+									</h4>
+									File: { t.FileName } <br/>
+									Source: { t.SourceFileName }
+								}
+							</div>
+						}
 					</div>
 				}
 			</div>
