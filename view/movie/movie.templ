@@ -4,13 +4,15 @@ import "fmt"
 import "github.com/eefret/gomdb"
 
 templ Movie(m *gomdb.MovieResult) {
-	<div>
-		<img src={ m.Poster } alt="movie poster" class="float-start p-1 w-25"/>
-		<a href={ templ.SafeURL(fmt.Sprintf("https://www.imdb.com/title/%s", m.ImdbID)) }>
-			{ m.Title }
-		</a>
-		<p>
-			Year: { m.Year }
-		</p>
+	<div class="d-flex align-items-center">
+		<img src={ m.Poster } alt="movie poster" class="p-1 w-25 me-2"/>
+		<div class="d-flex flex-column">
+			<a href={ templ.SafeURL(fmt.Sprintf("https://www.imdb.com/title/%s", m.ImdbID)) }>
+				{ m.Title }
+			</a>
+			<p>
+				Year: { m.Year }
+			</p>
+		</div>
 	</div>
 }
