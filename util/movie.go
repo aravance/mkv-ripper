@@ -25,25 +25,29 @@ func GetMovie(api *gomdb.OmdbApi, name string) (movie *gomdb.MovieResult, err er
 	return movie, err
 }
 
+func guessIsMainTitle(title makemkv.TitleInfo) bool {
+	return strings.Contains(title.FileName, "MainFeature") ||
+		title.SourceFileName == "00800.mpls"
+}
+
 func GuessMainTitleAndName(info *makemkv.DiscInfo) (title *makemkv.TitleInfo, name string) {
 	if info == nil || len(info.Titles) == 0 {
 		return
 	}
 
+	title = &info.Titles[0]
 	for _, t := range info.Titles {
-		if t.SourceFileName == "00800.mpls" {
+		if guessIsMainTitle(t) {
 			title = &t
 			break
 		}
 	}
-	if title == nil {
-		title = &info.Titles[0]
-	}
-	if title != nil && title.Name != "" {
+
+	if title.Name != "" {
 		name = title.Name
-	}
-	if info.Name != info.VolumeName {
+	} else if info.Name != info.VolumeName {
 		name = info.Name
 	}
+
 	return
 }
