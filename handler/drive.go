@@ -25,18 +25,17 @@ func NewDriveHandler(discdb drive.DiscDatabase, driveManager drive.DriveManager,
 
 func (d DriveHandler) GetDrive(c echo.Context) error {
 	status := d.driveManager.Status()
+	disc := d.driveManager.GetDisc()
 	var movie *gomdb.MovieResult
-	var wf *model.Workflow
 	var info *makemkv.DiscInfo
 	if status == drive.StatusReady || status == drive.StatusMkv {
-		disc := d.driveManager.GetDisc()
-		wf = d.workflowManager.GetWorkflow(disc.Uuid)
 		var found bool
 		info, found = d.discdb.GetDiscInfo(disc.Uuid)
 		if found {
-			main, name := util.GuessMainTitleAndName(info)
+			main := util.GuessMainTitle(info)
 			if main != nil {
 				var err error
+				name := util.GuessName(info, main)
 				movie, err = util.GetMovie(d.omdbapi, name)
 				if err != nil {
 					log.Println("error fetching movie:", name, "err:", err)
@@ -52,15 +51,14 @@ func (d DriveHandler) GetDrive(c echo.Context) error {
 			}
 		}
 	}
-	return render(c, driveview.Show(status, wf, movie, info))
+	return render(c, driveview.Show(status, disc, movie, info))
 }
 
 func (d DriveHandler) GetDriveStatus(c echo.Context) error {
 	status := d.driveManager.Status()
-	var wf *model.Workflow
+	var disc *drive.Disc
 	if d.driveManager.HasDisc() {
-		disc := d.driveManager.GetDisc()
-		wf = d.workflowManager.GetWorkflow(disc.Uuid)
+		disc = d.driveManager.GetDisc()
 	}
-	return render(c, driveview.Status(status, wf))
+	return render(c, driveview.Status(status, disc))
 }

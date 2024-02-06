@@ -30,24 +30,28 @@ func guessIsMainTitle(title makemkv.TitleInfo) bool {
 		title.SourceFileName == "00800.mpls"
 }
 
-func GuessMainTitleAndName(info *makemkv.DiscInfo) (title *makemkv.TitleInfo, name string) {
+func GuessMainTitle(info *makemkv.DiscInfo) *makemkv.TitleInfo {
 	if info == nil || len(info.Titles) == 0 {
-		return
+		return nil
 	}
 
-	title = &info.Titles[0]
 	for _, t := range info.Titles {
 		if guessIsMainTitle(t) {
-			title = &t
-			break
+			return &t
 		}
 	}
+	return &info.Titles[0]
+}
 
-	if title.Name != "" {
-		name = title.Name
-	} else if info.Name != info.VolumeName {
-		name = info.Name
+func GuessName(disc *makemkv.DiscInfo, title *makemkv.TitleInfo) string {
+	if title != nil && title.Name != "" {
+		return title.Name
+	} else if disc != nil {
+		if disc.Name != "" {
+			return disc.Name
+		} else {
+			return disc.VolumeName
+		}
 	}
-
-	return
+	return ""
 }

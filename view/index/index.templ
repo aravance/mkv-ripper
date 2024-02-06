@@ -12,7 +12,7 @@ templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
 		} else {
 			<ul>
 				for _, w := range workflows {
-					<li><a href={ templ.URL("/workflow/" + w.Id) }>{ w.Label }</a></li>
+					<li><a href={ templ.URL("/workflow/" + w.Id()) }>{ w.Label }</a></li>
 				}
 			</ul>
 		}

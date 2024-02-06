@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
@@ -23,8 +24,12 @@ func NewWorkflowHandler(workflowManager model.WorkflowManager, ingestHandler *in
 }
 
 func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
-	id := c.Param("id")
-	w := h.workflowManager.GetWorkflow(id)
+	discId := c.Param("discId")
+	titleId, err := strconv.Atoi(c.Param("titleId"))
+	var w *model.Workflow
+	if err == nil {
+		w = h.workflowManager.GetWorkflow(discId, titleId)
+	}
 	if w == nil {
 		return c.NoContent(http.StatusNotFound)
 	}
@@ -32,8 +37,12 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 }
 
 func (h WorkflowHandler) EditWorkflow(c echo.Context) error {
-	id := c.Param("id")
-	w := h.workflowManager.GetWorkflow(id)
+	discId := c.Param("discId")
+	titleId, err := strconv.Atoi(c.Param("titleId"))
+	var w *model.Workflow
+	if err == nil {
+		w = h.workflowManager.GetWorkflow(discId, titleId)
+	}
 	if w == nil {
 		return c.NoContent(http.StatusNotFound)
 	}
@@ -41,8 +50,12 @@ func (h WorkflowHandler) EditWorkflow(c echo.Context) error {
 }
 
 func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
-	id := c.Param("id")
-	w := h.workflowManager.GetWorkflow(id)
+	discId := c.Param("discId")
+	titleId, err := strconv.Atoi(c.Param("titleId"))
+	var w *model.Workflow
+	if err == nil {
+		w = h.workflowManager.GetWorkflow(discId, titleId)
+	}
 	if w == nil {
 		return c.NoContent(http.StatusNotFound)
 	}

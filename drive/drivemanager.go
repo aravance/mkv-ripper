@@ -23,8 +23,9 @@ const (
 )
 
 type Disc struct {
-	Label string
-	Uuid  string
+	Label     string
+	Uuid      string
+	MkvStatus *makemkv.Status
 }
 
 type DriveManager interface {

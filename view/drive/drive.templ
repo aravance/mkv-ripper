@@ -1,14 +1,14 @@
 package driveview
 
 import "github.com/aravance/mkv-ripper/drive"
-import "github.com/aravance/mkv-ripper/model"
 import "github.com/aravance/mkv-ripper/view/layout"
 import "github.com/aravance/mkv-ripper/view/movie"
 import "github.com/eefret/gomdb"
 import "strconv"
 import "github.com/aravance/go-makemkv"
+import "fmt"
 
-templ Show(status drive.DriveStatus, wf *model.Workflow, movie *gomdb.MovieResult, info *makemkv.DiscInfo) {
+templ Show(status drive.DriveStatus, disc *drive.Disc, movie *gomdb.MovieResult, info *makemkv.DiscInfo) {
 	@layout.Base("mkv-ripper") {
 		<div class="d-flex align-items-center py-4">
 			<div class="m-auto w-100" style="max-width: 330px;">
@@ -16,29 +16,17 @@ templ Show(status drive.DriveStatus, wf *model.Workflow, movie *gomdb.MovieResul
 				if status == drive.StatusEmpty {
 					<div>No disc</div>
 				} else if status == drive.StatusReading {
-					<div>Reading movie</div>
+					<div>Reading disc</div>
 				} else if info == nil {
 					<div>Failed to read disc</div>
 				} else {
 					<div>
-						@Status(status, wf)
+						@Status(status, disc)
 						if movie != nil {
 							@movieview.Movie(movie)
 						}
 						if info != nil {
-							<div>
-								for _, t := range info.Titles {
-									<h4>
-										if t.Name != "" {
-											{ strconv.Itoa(t.Id + 1) } - { t.Name }
-										} else {
-											Title { strconv.Itoa(t.Id + 1) }
-										}
-									</h4>
-									File: { t.FileName } <br/>
-									Source: { t.SourceFileName }
-								}
-							</div>
+							@DiscInfo(info)
 						}
 					</div>
 				}
@@ -47,7 +35,25 @@ templ Show(status drive.DriveStatus, wf *model.Workflow, movie *gomdb.MovieResul
 	}
 }
 
-templ Status(status drive.DriveStatus, wf *model.Workflow) {
+templ DiscInfo(info *makemkv.DiscInfo) {
+	<div class="list-group">
+		for _, t := range info.Titles {
+			<a href={ templ.URL(fmt.Sprintf("/disc/%d/rip", t.Id)) } class="list-group-item list-group-item-action">
+				<h4>
+					if t.Name != "" {
+						{ strconv.Itoa(t.Id + 1) } - { t.Name }
+					} else {
+						Title { strconv.Itoa(t.Id + 1) }
+					}
+				</h4>
+				<div>File: { t.FileName }</div>
+				<div>Source: { t.SourceFileName }</div>
+			</a>
+		}
+	</div>
+}
+
+templ Status(status drive.DriveStatus, disc *drive.Disc) {
 	<div hx-get="/drive/status" hx-trigger="every 2s">
 		if status == drive.StatusEmpty {
 			No disc
@@ -58,8 +64,8 @@ templ Status(status drive.DriveStatus, wf *model.Workflow) {
 		} else if status == drive.StatusMkv {
 			<span class="spinner-border spinner-border-sm" id="spinner" role="status" aria-hidden="true"></span>
 			Ripping -
-			if wf != nil {
-				{ strconv.Itoa(wf.MkvStatus.Total * 100 / wf.MkvStatus.Max) }%
+			if disc != nil {
+				{ strconv.Itoa(disc.MkvStatus.Total * 100 / disc.MkvStatus.Max) }%
 			}
 		} else {
 			Unknown
