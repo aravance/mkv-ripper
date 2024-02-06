@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	udev "github.com/farjump/go-libudev"
+	udev "github.com/jochenvg/go-udev"
 )
 
 type udevDevice struct {
@@ -79,40 +79,51 @@ func (t *udevListener) Start() {
 func (t *udevListener) run() {
 	t.wg.Add(1)
 	defer t.wg.Done()
-
 	u := udev.Udev{}
-	m := u.NewMonitorFromNetlink("udev")
 
-	m.FilterAddMatchSubsystemDevtype("block", "disk")
-	m.FilterAddMatchTag("systemd")
-
-	var ctx context.Context
-	ctx, t.cancel = context.WithCancel(context.Background())
-
-	devchan, err := m.DeviceChan(ctx)
-	if err == nil {
-		log.Println("udev channel opened")
-		for d := range devchan {
-			if d.PropertyValue("ID_CDROM_MEDIA") == "1" {
-				log.Println("found media:", d.Sysname(), "name:", d.PropertyValue("ID_FS_LABEL"))
-				dev := udevDevice{
-					udev: d,
-				}
-				t.devices[d.PropertyValue("DEVNAME")] = dev
-				go t.notify(&dev)
-			} else if d.PropertyValue("SYSTEMD_READY") == "0" {
-				dev, ok := t.devices[d.PropertyValue("DEVNAME")]
-				if ok {
-					delete(t.devices, d.PropertyValue("DEVNAME"))
-					dev.udev = nil
-					go t.notify(&dev)
-				}
+	e := u.NewEnumerate()
+	e.AddMatchSubsystem("block")
+	e.AddMatchProperty("ID_CDROM_MEDIA", "1")
+	e.AddMatchIsInitialized()
+	devices, err := e.Devices()
+	if err != nil {
+		log.Println("error enumerating udev devices:", err)
+	} else {
+		for _, d := range devices {
+			if d.Devtype() == "disk" {
+				go t.notify(&udevDevice{d})
 			}
 		}
-		log.Println("udev channel closed")
-	} else {
-		log.Println("error opening udev channel:", err)
 	}
+
+	m := u.NewMonitorFromNetlink("udev")
+	m.FilterAddMatchSubsystemDevtype("block", "disk")
+	m.FilterAddMatchTag("systemd")
+	var ctx context.Context
+	ctx, t.cancel = context.WithCancel(context.Background())
+	devchan, err := m.DeviceChan(ctx)
+	if err != nil {
+		log.Println("error opening udev channel:", err)
+		return
+	}
+
+	log.Println("udev channel opened")
+	for d := range devchan {
+		if d.PropertyValue("ID_CDROM_MEDIA") == "1" {
+			log.Println("found media:", d.Sysname(), "name:", d.PropertyValue("ID_FS_LABEL"))
+			dev := udevDevice{d}
+			t.devices[d.PropertyValue("DEVNAME")] = dev
+			go t.notify(&dev)
+		} else if d.PropertyValue("SYSTEMD_READY") == "0" {
+			dev, ok := t.devices[d.PropertyValue("DEVNAME")]
+			if ok {
+				delete(t.devices, d.PropertyValue("DEVNAME"))
+				dev.udev = nil
+				go t.notify(&dev)
+			}
+		}
+	}
+	log.Println("udev channel closed")
 }
 
 func (t *udevListener) Stop() {

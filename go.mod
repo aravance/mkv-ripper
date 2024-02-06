@@ -4,7 +4,7 @@ go 1.21.6
 
 require (
 	github.com/aravance/go-makemkv v0.0.0-20240125221345-694e70b080e6
-	github.com/farjump/go-libudev v0.0.0-20171109190736-8b0739cd6d0b
+	github.com/jochenvg/go-udev v0.0.0-20171110120927-d6b62d56d37b
 	github.com/google/uuid v1.4.0
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/vansante/go-ffprobe v1.1.0
