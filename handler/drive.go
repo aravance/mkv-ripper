@@ -2,24 +2,26 @@ package handler
 
 import (
 	"log"
+	"net/http"
+	"strconv"
 
 	"github.com/aravance/go-makemkv"
 	"github.com/aravance/mkv-ripper/drive"
-	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
 	driveview "github.com/aravance/mkv-ripper/view/drive"
+	"github.com/aravance/mkv-ripper/workflow"
 	"github.com/eefret/gomdb"
 	"github.com/labstack/echo/v4"
 )
 
 type DriveHandler struct {
 	driveManager    drive.DriveManager
-	workflowManager model.WorkflowManager
+	workflowManager workflow.WorkflowManager
 	discdb          drive.DiscDatabase
 	omdbapi         *gomdb.OmdbApi
 }
 
-func NewDriveHandler(discdb drive.DiscDatabase, driveManager drive.DriveManager, workflowManager model.WorkflowManager, omdbapi *gomdb.OmdbApi) DriveHandler {
+func NewDriveHandler(discdb drive.DiscDatabase, driveManager drive.DriveManager, workflowManager workflow.WorkflowManager, omdbapi *gomdb.OmdbApi) DriveHandler {
 	return DriveHandler{driveManager, workflowManager, discdb, omdbapi}
 }
 
@@ -61,4 +63,45 @@ func (d DriveHandler) GetDriveStatus(c echo.Context) error {
 		disc = d.driveManager.GetDisc()
 	}
 	return render(c, driveview.Status(status, disc))
+}
+
+func (d DriveHandler) RipTitle(c echo.Context) error {
+	discId := c.Param("discId")
+	titleId, err := strconv.Atoi(c.Param("titleId"))
+	status := d.driveManager.Status()
+	if err != nil {
+		return c.String(http.StatusNotFound, "no title found")
+	}
+	if status == drive.StatusEmpty {
+		return c.String(http.StatusNotFound, "drive is empty")
+	}
+	if status != drive.StatusReady {
+		return c.String(http.StatusNotFound, "drive is busy")
+	}
+	disc := d.driveManager.GetDisc()
+	if disc.Uuid != discId {
+		return c.String(http.StatusNotFound, "disc changed")
+	}
+	discInfo, ok := d.discdb.GetDiscInfo(discId)
+	if !ok {
+		return c.String(http.StatusNotFound, "disc info not found")
+	}
+	titleInfo := discInfo.Titles[titleId]
+	name := util.GuessName(discInfo, &titleInfo)
+
+	wf, ok := d.workflowManager.NewWorkflow(discId, titleId, disc.Label, name)
+
+	if wf.Name == nil || *wf.Name == "" || wf.Year == nil || *wf.Year == "" {
+		if movie, err := util.GetMovie(d.omdbapi, wf.OriginalName); err != nil {
+			log.Println("failed to GetMovie", err)
+		} else {
+			wf.Name = &movie.Title
+			wf.Year = &movie.Year
+			wf.ImdbId = &movie.ImdbID
+			d.workflowManager.Save(wf)
+		}
+	}
+
+	go d.workflowManager.Start(wf)
+	return c.Redirect(http.StatusTemporaryRedirect, "/drive")
 }

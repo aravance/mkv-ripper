@@ -26,15 +26,6 @@ type Disc struct {
 	Label     string
 	Uuid      string
 	MkvStatus *makemkv.Status
-	driveman  DriveManager
-}
-
-func (d *Disc) GetDiscInfo() (*makemkv.DiscInfo, error) {
-	return d.driveman.GetDiscInfo()
-}
-
-func (d *Disc) RipFile(title *makemkv.TitleInfo, outdir string, outchan chan makemkv.Status) (*model.MkvFile, error) {
-	return d.driveman.RipFile(title, outdir, outchan)
 }
 
 type DriveManager interface {
@@ -48,7 +39,7 @@ type DriveManager interface {
 	RipFile(title *makemkv.TitleInfo, outdir string, outchan chan makemkv.Status) (*model.MkvFile, error)
 }
 
-func NewUdevDriveManager(onDisc func(*Disc)) DriveManager {
+func NewUdevDriveManager(onDisc func(DriveManager)) DriveManager {
 	m := driveManager{
 		status: StatusEmpty,
 		onDisc: onDisc,
@@ -64,7 +55,7 @@ type driveManager struct {
 	device       *udevDevice
 	status       DriveStatus
 	disc         *Disc
-	onDisc       func(*Disc)
+	onDisc       func(DriveManager)
 }
 
 func (m *driveManager) Status() DriveStatus {
@@ -186,13 +177,12 @@ func (m *driveManager) onDevice(dev *udevDevice) {
 	} else {
 		m.device = dev
 		m.disc = &Disc{
-			Label:    dev.Label(),
-			Uuid:     dev.Uuid(),
-			driveman: m,
+			Label: dev.Label(),
+			Uuid:  dev.Uuid(),
 		}
 	}
 	m.setIdle()
-	go m.onDisc(m.disc)
+	go m.onDisc(m)
 }
 
 func (m *driveManager) Stop() error {

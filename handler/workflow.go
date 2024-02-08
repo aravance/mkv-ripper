@@ -5,21 +5,19 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
 	workflowview "github.com/aravance/mkv-ripper/view/workflow"
+	"github.com/aravance/mkv-ripper/workflow"
 	"github.com/labstack/echo/v4"
 )
 
 type WorkflowHandler struct {
-	workflowManager model.WorkflowManager
-	ingestHandler   *ingest.IngestHandler
+	workflowManager workflow.WorkflowManager
 }
 
-func NewWorkflowHandler(workflowManager model.WorkflowManager, ingestHandler *ingest.IngestHandler) WorkflowHandler {
+func NewWorkflowHandler(workflowManager workflow.WorkflowManager) WorkflowHandler {
 	return WorkflowHandler{
 		workflowManager: workflowManager,
-		ingestHandler:   ingestHandler,
 	}
 }
 
@@ -80,7 +78,7 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	}
 
 	if w.File != nil {
-		go h.ingestHandler.IngestWorkflow(w)
+		go h.workflowManager.Ingest(w)
 		return c.String(http.StatusOK, "Import started")
 	} else {
 		return c.String(http.StatusOK, "Import will begin once the files are ready")

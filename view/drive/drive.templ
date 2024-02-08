@@ -26,7 +26,7 @@ templ Show(status drive.DriveStatus, disc *drive.Disc, movie *gomdb.MovieResult,
 							@movieview.Movie(movie)
 						}
 						if info != nil {
-							@DiscInfo(info)
+							@DiscInfo(disc, info)
 						}
 					</div>
 				}
@@ -35,10 +35,13 @@ templ Show(status drive.DriveStatus, disc *drive.Disc, movie *gomdb.MovieResult,
 	}
 }
 
-templ DiscInfo(info *makemkv.DiscInfo) {
+templ DiscInfo(disc *drive.Disc, info *makemkv.DiscInfo) {
 	<div class="list-group">
 		for _, t := range info.Titles {
-			<a href={ templ.URL(fmt.Sprintf("/disc/%d/rip", t.Id)) } class="list-group-item list-group-item-action">
+			<a
+				href={ templ.URL(fmt.Sprintf("/disc/%s/title/%d/rip", disc.Uuid, t.Id)) }
+				class="list-group-item list-group-item-action"
+			>
 				<h4>
 					if t.Name != "" {
 						{ strconv.Itoa(t.Id + 1) } - { t.Name }

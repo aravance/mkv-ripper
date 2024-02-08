@@ -3,22 +3,22 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"path"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/aravance/go-makemkv"
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/handler"
-	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
+	"github.com/aravance/mkv-ripper/workflow"
 	"github.com/eefret/gomdb"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -34,30 +34,25 @@ func main() {
 		log.SetOutput(logfile)
 	}
 
-	wfman := model.NewJsonWorkflowManager("workflows.json")
+	var wfman workflow.WorkflowManager
 	omdbapi := gomdb.Init(cfg.Omdb.Apikey)
-	rip := func(d *drive.Disc, di *makemkv.DiscInfo, ti *makemkv.TitleInfo) (*model.Workflow, error) {
-		return ripTitle(wfman, omdbapi, d, di, ti, cfg.Rip)
-	}
-
 	discdb := drive.NewJsonDiscDatabase("discs.json")
-	ingesthandler := ingest.NewIngestHandler(wfman, targets(cfg))
-	handle := func(disc *drive.Disc) {
-		handleDisc(discdb, ingesthandler, disc, rip)
+	handle := func(driveman drive.DriveManager) {
+		handleDisc(discdb, wfman, driveman, omdbapi)
 	}
-
 	driveman := drive.NewUdevDriveManager(handle)
+	wfman = workflow.NewJsonWorkflowManager(driveman, discdb, targets(cfg), cfg.Rip, "workflows.json")
 
 	driveman.Start()
 	defer driveman.Stop()
 
-	for _, workflow := range wfman.GetWorkflows() {
-		if workflow.Status == model.StatusImporting {
-			go func(w *model.Workflow) {
-				if w.Name != nil && w.Year != nil {
-					ingesthandler.IngestWorkflow(w)
-				}
-			}(workflow)
+	for _, wf := range wfman.GetWorkflows() {
+		if wf.Status == model.StatusPending || wf.Status == model.StatusImporting {
+			if wf.Name != nil && wf.Year != nil {
+				go func(w *model.Workflow) {
+					wfman.Ingest(w)
+				}(wf)
+			}
 		}
 	}
 
@@ -68,7 +63,7 @@ func main() {
 
 	indexHandler := handler.NewIndexHandler(driveman, wfman)
 	driveHandler := handler.NewDriveHandler(discdb, driveman, wfman, omdbapi)
-	workflowHandler := handler.NewWorkflowHandler(wfman, ingesthandler)
+	workflowHandler := handler.NewWorkflowHandler(wfman)
 	omdbHandler := handler.NewOmdbHandler(omdbapi)
 
 	server.GET("/", indexHandler.GetIndex)
@@ -78,6 +73,7 @@ func main() {
 	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
 	server.GET("/workflow/:id/edit", workflowHandler.EditWorkflow)
 	server.GET("/omdb/search", omdbHandler.Search)
+	server.GET("/disc/:discId/title/:titleId/rip", driveHandler.RipTitle)
 
 	go func() {
 		if err := server.Start(":8080"); !errors.Is(err, http.ErrServerClosed) {
@@ -109,75 +105,13 @@ func targets(cfg Config) []*url.URL {
 	return targets
 }
 
-func ripTitle(
-	wfman model.WorkflowManager,
-	omdbapi *gomdb.OmdbApi,
-	disc *drive.Disc,
-	di *makemkv.DiscInfo,
-	ti *makemkv.TitleInfo,
-	outdir string,
-) (*model.Workflow, error) {
-	if disc == nil {
-		return nil, fmt.Errorf("disc cannot be nil")
-	}
-	if di == nil {
-		return nil, fmt.Errorf("info cannot be nil")
-	}
-	if ti == nil {
-		return nil, fmt.Errorf("title cannot be nil")
-	}
-
-	name := util.GuessName(di, ti)
-	wf, _ := wfman.NewWorkflow(disc.Uuid, ti.Id, disc.Label, name)
-	wf.Status = model.StatusRipping
-	wfman.Save(wf)
-
-	if movie, err := util.GetMovie(omdbapi, wf.OriginalName); err != nil {
-		log.Println("failed to GetMovie", err)
-	} else {
-		wf.Name = &movie.Title
-		wf.Year = &movie.Year
-		wf.ImdbId = &movie.ImdbID
-		wfman.Save(wf)
-	}
-
-	dir := path.Join(outdir, wf.Id())
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Println("error making dir:", dir, "err:", err)
-		wf.Status = model.StatusError
-		wfman.Save(wf)
-		return nil, err
-	}
-
-	statchan := make(chan makemkv.Status)
-	defer close(statchan)
-
-	go func() {
-		for stat := range statchan {
-			disc.MkvStatus = &stat
-		}
-	}()
-
-	f, err := disc.RipFile(ti, dir, statchan)
-	if err != nil {
-		log.Println("error ripping:", wf, "err:", err)
-		wf.Status = model.StatusError
-		wfman.Save(wf)
-		return nil, err
-	}
-
-	wf.File = f
-	wf.Status = model.StatusPending
-	wfman.Save(wf)
-	return wf, nil
-}
-
 func handleDisc(
 	discdb drive.DiscDatabase,
-	ingesthandler *ingest.IngestHandler,
-	disc *drive.Disc,
-	ripDisc func(*drive.Disc, *makemkv.DiscInfo, *makemkv.TitleInfo) (*model.Workflow, error),
+	wfman workflow.WorkflowManager,
+	driveman drive.DriveManager,
+	omdbapi *gomdb.OmdbApi,
 ) {
+	disc := driveman.GetDisc()
 	if disc == nil {
 		return
 	}
@@ -187,7 +121,7 @@ func handleDisc(
 	var err error
 	info, found = discdb.GetDiscInfo(disc.Uuid)
 	if !found {
-		info, err = disc.GetDiscInfo()
+		info, err = driveman.GetDiscInfo()
 		if err != nil {
 			log.Println("error getting disc info:", disc, "err:", err)
 			return
@@ -203,13 +137,28 @@ func handleDisc(
 			log.Println("failed to guess main title")
 			return
 		}
+		name := util.GuessName(info, main)
+		wf, _ := wfman.NewWorkflow(disc.Uuid, main.Id, disc.Label, name)
 
-		wf, err := ripDisc(disc, info, main)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if movie, err := util.GetMovie(omdbapi, name); err != nil {
+				log.Println("failed to fetch movie details:", name)
+			} else {
+				wf.Name = &movie.Title
+				wf.Year = &movie.Year
+				wf.ImdbId = &movie.ImdbID
+				wfman.Save(wf)
+			}
+		}()
+
+		err = wfman.Start(wf)
+		wg.Wait()
 		if err != nil {
 			log.Println("failed to rip title", err)
 			return
 		}
-
-		go ingesthandler.IngestWorkflow(wf)
 	}
 }

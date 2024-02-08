@@ -2,17 +2,17 @@ package handler
 
 import (
 	"github.com/aravance/mkv-ripper/drive"
-	"github.com/aravance/mkv-ripper/model"
 	indexview "github.com/aravance/mkv-ripper/view/index"
+	"github.com/aravance/mkv-ripper/workflow"
 	"github.com/labstack/echo/v4"
 )
 
 type IndexHandler struct {
-	workflowManager model.WorkflowManager
+	workflowManager workflow.WorkflowManager
 	driveManager    drive.DriveManager
 }
 
-func NewIndexHandler(driveManager drive.DriveManager, workflowManager model.WorkflowManager) IndexHandler {
+func NewIndexHandler(driveManager drive.DriveManager, workflowManager workflow.WorkflowManager) IndexHandler {
 	return IndexHandler{workflowManager, driveManager}
 }
 
