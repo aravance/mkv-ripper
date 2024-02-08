@@ -26,6 +26,15 @@ import (
 
 func main() {
 	cfg := parseConfig()
+	outdir := cfg.Rip
+	targets := make([]*url.URL, len(cfg.Targets))
+	for i, t := range cfg.Targets {
+		targets[i] = &url.URL{
+			Scheme: t.Scheme,
+			Host:   t.Host,
+			Path:   t.Path,
+		}
+	}
 
 	if logfile, err := os.OpenFile(path.Join(cfg.Log, "mkv.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)
@@ -41,7 +50,7 @@ func main() {
 		handleDisc(discdb, wfman, driveman, omdbapi)
 	}
 	driveman := drive.NewUdevDriveManager(handle)
-	wfman = workflow.NewJsonWorkflowManager(driveman, discdb, targets(cfg), cfg.Rip, "workflows.json")
+	wfman = workflow.NewJsonWorkflowManager(driveman, discdb, targets, outdir, "workflows.json")
 
 	driveman.Start()
 	defer driveman.Stop()
@@ -91,18 +100,6 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalln("server shutdown error", err)
 	}
-}
-
-func targets(cfg Config) []*url.URL {
-	targets := make([]*url.URL, len(cfg.Targets))
-	for i, t := range cfg.Targets {
-		targets[i] = &url.URL{
-			Scheme: t.Scheme,
-			Host:   t.Host,
-			Path:   t.Path,
-		}
-	}
-	return targets
 }
 
 func handleDisc(
