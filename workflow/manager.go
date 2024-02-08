@@ -81,6 +81,10 @@ func (m *workflowManager) Start(wf *model.Workflow) error {
 }
 
 func (m *workflowManager) Ingest(wf *model.Workflow) error {
+	if wf.Status != model.StatusPending {
+		log.Println("ingest workflow not ready", wf)
+		return fmt.Errorf("workflow not ready, status: %s", wf.Status)
+	}
 	log.Println("ingesting", wf)
 
 	file := wf.File

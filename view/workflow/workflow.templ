@@ -3,14 +3,15 @@ package workflowview
 import (
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/view/layout"
+	"fmt"
 )
 
-templ Show(workflow *model.Workflow) {
-	@layout.Base(workflow.Label) {
+templ Show(wf *model.Workflow) {
+	@layout.Base(wf.Label) {
 		<main>
 			<div class="d-flex align-items-center py-4">
 				<div class="m-auto w-100" style="max-width: 330px;">
-					<h1 class="h3 mb-4 fw-normal">{ workflow.Label }</h1>
+					<h1 class="h3 mb-4 fw-normal">{ wf.Label }</h1>
 					<form hx-post="?" hx-target="#response" hx-indicator="#spinner">
 						<div class="form-floating mb-2">
 							<input type="text" name="name" id="name" class="form-control" placeholder="Name"/>
@@ -37,8 +38,8 @@ templ Show(workflow *model.Workflow) {
 	}
 }
 
-templ Edit(workflow *model.Workflow) {
-	@layout.Base(workflow.Label) {
+templ Edit(wf *model.Workflow) {
+	@layout.Base(wf.Label) {
 		<main>
 			<div class="d-flex align-items-center py-4">
 				<div class="m-auto w-100" style="max-width: 330px;">
@@ -58,12 +59,16 @@ templ Edit(workflow *model.Workflow) {
 								name="q"
 								aria-label="Search"
 								aria-describedby="search-addon"
-								value={ workflow.OriginalName }
+								value={ wf.OriginalName }
 							/>
 							<label for="q">Movie title</label>
 						</div>
 					</div>
-					<div id="results" class="vstack gap-3"></div>
+					<form
+						id="results"
+						action={ templ.SafeURL(fmt.Sprintf("/workflow/%s/title/%d", wf.DiscId, wf.TitleId)) }
+						method="post"
+					></form>
 				</div>
 			</div>
 		</main>

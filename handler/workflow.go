@@ -9,16 +9,19 @@ import (
 	"github.com/aravance/mkv-ripper/model"
 	workflowview "github.com/aravance/mkv-ripper/view/workflow"
 	"github.com/aravance/mkv-ripper/workflow"
+	"github.com/eefret/gomdb"
 	"github.com/labstack/echo/v4"
 )
 
 type WorkflowHandler struct {
-	workflowManager workflow.WorkflowManager
+	wfman   workflow.WorkflowManager
+	omdbapi *gomdb.OmdbApi
 }
 
-func NewWorkflowHandler(workflowManager workflow.WorkflowManager) WorkflowHandler {
+func NewWorkflowHandler(wfman workflow.WorkflowManager, omdbapi *gomdb.OmdbApi) WorkflowHandler {
 	return WorkflowHandler{
-		workflowManager: workflowManager,
+		wfman:   wfman,
+		omdbapi: omdbapi,
 	}
 }
 
@@ -27,7 +30,7 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 	titleId, err := strconv.Atoi(c.Param("titleId"))
 	var w *model.Workflow
 	if err == nil {
-		w = h.workflowManager.GetWorkflow(discId, titleId)
+		w = h.wfman.GetWorkflow(discId, titleId)
 	}
 	if w == nil {
 		return c.NoContent(http.StatusNotFound)
@@ -41,7 +44,7 @@ func (h WorkflowHandler) EditWorkflow(c echo.Context) error {
 	log.Println("getting workflow", discId, ":", titleId)
 	var w *model.Workflow
 	if err == nil {
-		w = h.workflowManager.GetWorkflow(discId, titleId)
+		w = h.wfman.GetWorkflow(discId, titleId)
 	}
 	log.Println("got workflow", w)
 	if w == nil {
@@ -55,35 +58,32 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	titleId, err := strconv.Atoi(c.Param("titleId"))
 	var w *model.Workflow
 	if err == nil {
-		w = h.workflowManager.GetWorkflow(discId, titleId)
+		w = h.wfman.GetWorkflow(discId, titleId)
 	}
 	if w == nil {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	if w.Name != nil || w.Year != nil {
-		return c.String(http.StatusConflict, "workflow already has details")
+	imdbid := c.FormValue("imdbid")
+	if imdbid == "" {
+		return c.String(http.StatusUnprocessableEntity, "imdbid cannot be empty")
 	}
 
-	name := c.FormValue("name")
-	if name == "" {
-		return c.String(http.StatusUnprocessableEntity, "name cannot be empty")
-	}
-	year := c.FormValue("year")
-	if year == "" {
-		return c.String(http.StatusUnprocessableEntity, "year cannot be empty")
+	mov, err := h.omdbapi.MovieByImdbID(imdbid)
+	if err != nil {
+		log.Println("error fetching movie", imdbid, "err:", err)
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("error fetching movie, %v", err))
 	}
 
-	w.Name = &name
-	w.Year = &year
-	if err := h.workflowManager.Save(w); err != nil {
+	w.Name = &mov.Title
+	w.Year = &mov.Year
+	w.ImdbId = &imdbid
+	if err := h.wfman.Save(w); err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 
 	if w.File != nil {
-		go h.workflowManager.Ingest(w)
-		return c.String(http.StatusOK, "Import started")
-	} else {
-		return c.String(http.StatusOK, "Import will begin once the files are ready")
+		go h.wfman.Ingest(w)
 	}
+	return c.Redirect(http.StatusTemporaryRedirect, "/")
 }
