@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	omdbview "github.com/aravance/mkv-ripper/view/omdb"
 	"github.com/eefret/gomdb"
@@ -40,15 +41,21 @@ func (h OmdbHandler) Search(c echo.Context) error {
 		limit = len(res.Search)
 	}
 
-	movies := make([]*gomdb.MovieResult, 0, limit)
+	var wg sync.WaitGroup
+	movies := make([]*gomdb.MovieResult, limit, limit)
 	for i, r := range res.Search {
 		if i >= limit {
 			break
 		}
-		m, err := h.omdbapi.MovieByImdbID(r.ImdbID)
-		if err == nil {
-			movies = append(movies, m)
-		}
+		wg.Add(1)
+		go func(i int, imdbid string) {
+			defer wg.Done()
+			m, err := h.omdbapi.MovieByImdbID(imdbid)
+			if err == nil {
+				movies[i] = m
+			}
+		}(i, r.ImdbID)
 	}
+	wg.Wait()
 	return render(c, omdbview.Search(movies))
 }

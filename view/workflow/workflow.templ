@@ -46,13 +46,20 @@ templ Edit(wf *model.Workflow) {
 					<h1 class="h3 mb-4 fw-normal">Edit</h1>
 					<div class="input-group mb-3">
 						<span class="input-group-text" id="search-addon">
-							<i class="bi-search"></i>
+							<i class="bi-search htmx-reverse-indicator"></i>
+							<span
+								class="spinner-border spinner-border-sm htmx-indicator"
+								id="spinner"
+								role="status"
+								aria-hidden="true"
+							></span>
 						</span>
 						<div class="form-floating">
 							<input
 								hx-get="/omdb/search?limit=4"
 								hx-trigger="load,keyup changed delay:500ms"
 								hx-target="#results"
+								hx-indicator="#search-addon"
 								class="form-control"
 								type="text"
 								id="q"
