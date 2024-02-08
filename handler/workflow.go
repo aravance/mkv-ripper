@@ -85,5 +85,5 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	if w.File != nil {
 		go h.wfman.Ingest(w)
 	}
-	return c.Redirect(http.StatusTemporaryRedirect, "/")
+	return c.Redirect(http.StatusSeeOther, "/")
 }

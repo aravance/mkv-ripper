@@ -103,5 +103,5 @@ func (d DriveHandler) RipTitle(c echo.Context) error {
 	}
 
 	go d.workflowManager.Start(wf)
-	return c.Redirect(http.StatusTemporaryRedirect, "/drive")
+	return c.Redirect(http.StatusSeeOther, "/drive")
 }
