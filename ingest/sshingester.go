@@ -86,7 +86,7 @@ func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error 
 	}
 
 	// add sha256sum to Movies.sha256
-	cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -o %s -m - %s", mkv.Shasum, escapeSsh(moviedir), escapeSsh(mkvfile), shafile, shafile)
+	cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -u -o %s -m - %s", mkv.Shasum, escapeSsh(moviedir), escapeSsh(mkvfile), shafile, shafile)
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to add shasum", newdir)
 		return err
