@@ -3,6 +3,7 @@ package indexview
 import "github.com/aravance/mkv-ripper/view/layout"
 import "github.com/aravance/mkv-ripper/model"
 import "github.com/aravance/mkv-ripper/drive"
+import "fmt"
 
 templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
 	@layout.Base("mkv-ripper") {
@@ -12,7 +13,16 @@ templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
 		} else {
 			<ul>
 				for _, w := range workflows {
-					<li><a href={ templ.URL("/workflow/" + w.Id()) }>{ w.Label }</a></li>
+					<li>
+						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d/edit", w.DiscId, w.TitleId)) }>
+							if w.Name != nil && *w.Name != "" {
+								{ *w.Name }
+							} else {
+								{ w.Label }
+							}
+						</a>
+						: { string(w.Status) }
+					</li>
 				}
 			</ul>
 		}

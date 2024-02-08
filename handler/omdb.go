@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log"
+	"strconv"
 	"strings"
 
 	omdbview "github.com/aravance/mkv-ripper/view/omdb"
@@ -33,8 +34,17 @@ func (h OmdbHandler) Search(c echo.Context) error {
 		log.Println("error searching omdb q:", q, "err:", err)
 		return err
 	}
-	movies := make([]*gomdb.MovieResult, 0, len(res.Search))
-	for _, r := range res.Search {
+
+	limit, _ := strconv.Atoi(c.QueryParam("limit"))
+	if limit <= 0 {
+		limit = len(res.Search)
+	}
+
+	movies := make([]*gomdb.MovieResult, 0, limit)
+	for i, r := range res.Search {
+		if i >= limit {
+			break
+		}
 		m, err := h.omdbapi.MovieByImdbID(r.ImdbID)
 		if err == nil {
 			movies = append(movies, m)

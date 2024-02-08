@@ -20,7 +20,8 @@ type WorkflowManager interface {
 	Ingest(*model.Workflow) error
 	NewWorkflow(discId string, titleId int, label string, name string) (*model.Workflow, bool)
 	GetWorkflow(discId string, titleId int) *model.Workflow
-	GetWorkflows() []*model.Workflow
+	GetWorkflows(discId string) []*model.Workflow
+	GetAllWorkflows() []*model.Workflow
 	Save(*model.Workflow) error
 	Clean(*model.Workflow) error
 }
@@ -45,7 +46,7 @@ func (m *workflowManager) Start(wf *model.Workflow) error {
 	wf.Status = model.StatusRipping
 	m.Save(wf)
 
-	dir := path.Join(m.outdir, wf.Id())
+	dir := path.Join(m.outdir, wf.DiscId)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		log.Println("error making dir:", dir, "err:", err)
 		wf.Status = model.StatusError
@@ -120,7 +121,7 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 }
 
 type workflowManager struct {
-	workflows map[string]*model.Workflow
+	workflows map[string]map[int]*model.Workflow
 	driveman  drive.DriveManager
 	discdb    drive.DiscDatabase
 	targets   []*url.URL
@@ -144,7 +145,7 @@ func newWorkflow(discId string, titleId int, label string, name string) *model.W
 func NewJsonWorkflowManager(driveman drive.DriveManager, discdb drive.DiscDatabase, targets []*url.URL, outdir string, file string) WorkflowManager {
 	workflows, err := loadWorkflowJson(file)
 	if err != nil {
-		workflows = make(map[string]*model.Workflow)
+		workflows = make(map[string]map[int]*model.Workflow)
 	}
 	m := workflowManager{
 		workflows: workflows,
@@ -157,12 +158,18 @@ func NewJsonWorkflowManager(driveman drive.DriveManager, discdb drive.DiscDataba
 	return &m
 }
 
-func id(discId string, titleId int) string {
-	return fmt.Sprintf("%s-%d", discId, titleId)
+func getOrCreate(wfs map[string]map[int]*model.Workflow, key string) map[int]*model.Workflow {
+	w, containsKey := wfs[key]
+	if !containsKey {
+		w = make(map[int]*model.Workflow)
+		wfs[key] = w
+	}
+	return w
 }
 
 func (m *workflowManager) NewWorkflow(discId string, titleId int, label string, name string) (*model.Workflow, bool) {
-	w, containsKey := m.workflows[id(discId, titleId)]
+	titleWfs := getOrCreate(m.workflows, discId)
+	w, containsKey := titleWfs[titleId]
 	if containsKey {
 		w.Label = label
 		return w, false
@@ -172,19 +179,39 @@ func (m *workflowManager) NewWorkflow(discId string, titleId int, label string, 
 }
 
 func (m *workflowManager) GetWorkflow(discId string, titleId int) *model.Workflow {
-	return m.workflows[id(discId, titleId)]
+	titleWfs, containsKey := m.workflows[discId]
+	if !containsKey {
+		return nil
+	}
+	return titleWfs[titleId]
 }
 
-func (m *workflowManager) GetWorkflows() []*model.Workflow {
-	values := make([]*model.Workflow, 0, len(m.workflows))
-	for _, v := range m.workflows {
+func (m *workflowManager) GetWorkflows(discId string) []*model.Workflow {
+	titleWfs, containsKey := m.workflows[discId]
+	if !containsKey {
+		return make([]*model.Workflow, 0)
+	}
+
+	values := make([]*model.Workflow, 0, len(titleWfs))
+	for _, v := range titleWfs {
 		values = append(values, v)
 	}
 	return values
 }
 
+func (m *workflowManager) GetAllWorkflows() []*model.Workflow {
+	values := make([]*model.Workflow, 0, len(m.workflows))
+	for _, t := range m.workflows {
+		for _, v := range t {
+			values = append(values, v)
+		}
+	}
+	return values
+}
+
 func (m *workflowManager) Save(w *model.Workflow) error {
-	m.workflows[id(w.DiscId, w.TitleId)] = w
+	titleWfs := getOrCreate(m.workflows, w.DiscId)
+	titleWfs[w.TitleId] = w
 
 	if bytes, err := json.Marshal(m.workflows); err != nil {
 		return err
@@ -196,6 +223,9 @@ func (m *workflowManager) Save(w *model.Workflow) error {
 }
 
 func (m *workflowManager) Clean(w *model.Workflow) error {
+	// attempt to remove the rip dir, but ignore failures for non-empty
+	os.Remove(path.Join(m.outdir, w.DiscId))
+
 	err := os.Remove(w.File.Filename)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Println("error removing file", w.File.Filename)
@@ -205,8 +235,8 @@ func (m *workflowManager) Clean(w *model.Workflow) error {
 	return m.Save(w)
 }
 
-func loadWorkflowJson(file string) (map[string]*model.Workflow, error) {
-	var out map[string]*model.Workflow
+func loadWorkflowJson(file string) (map[string]map[int]*model.Workflow, error) {
+	var out map[string]map[int]*model.Workflow
 	bytes, err := os.ReadFile(file)
 	if err != nil {
 		log.Println("Failed to read file:", file, err)

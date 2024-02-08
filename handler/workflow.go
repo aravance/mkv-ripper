@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -37,10 +38,12 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 func (h WorkflowHandler) EditWorkflow(c echo.Context) error {
 	discId := c.Param("discId")
 	titleId, err := strconv.Atoi(c.Param("titleId"))
+	log.Println("getting workflow", discId, ":", titleId)
 	var w *model.Workflow
 	if err == nil {
 		w = h.workflowManager.GetWorkflow(discId, titleId)
 	}
+	log.Println("got workflow", w)
 	if w == nil {
 		return c.NoContent(http.StatusNotFound)
 	}

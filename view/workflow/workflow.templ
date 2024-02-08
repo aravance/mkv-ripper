@@ -49,7 +49,7 @@ templ Edit(workflow *model.Workflow) {
 						</span>
 						<div class="form-floating">
 							<input
-								hx-get="/omdb/search"
+								hx-get="/omdb/search?limit=4"
 								hx-trigger="load,keyup changed delay:500ms"
 								hx-target="#results"
 								class="form-control"
@@ -58,7 +58,7 @@ templ Edit(workflow *model.Workflow) {
 								name="q"
 								aria-label="Search"
 								aria-describedby="search-addon"
-								value={ templ.EscapeString(*workflow.Name) }
+								value={ workflow.OriginalName }
 							/>
 							<label for="q">Movie title</label>
 						</div>

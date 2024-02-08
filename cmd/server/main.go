@@ -46,7 +46,7 @@ func main() {
 	driveman.Start()
 	defer driveman.Stop()
 
-	for _, wf := range wfman.GetWorkflows() {
+	for _, wf := range wfman.GetAllWorkflows() {
 		if wf.Status == model.StatusPending || wf.Status == model.StatusImporting {
 			if wf.Name != nil && wf.Year != nil {
 				go func(w *model.Workflow) {
@@ -69,9 +69,9 @@ func main() {
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
-	server.GET("/workflow/:id", workflowHandler.GetWorkflow)
-	server.POST("/workflow/:id", workflowHandler.PostWorkflow)
-	server.GET("/workflow/:id/edit", workflowHandler.EditWorkflow)
+	server.GET("/workflow/:discId/title/:titleId", workflowHandler.GetWorkflow)
+	server.POST("/workflow/:discId/title/:titleId", workflowHandler.PostWorkflow)
+	server.GET("/workflow/:discId/title/:titleId/edit", workflowHandler.EditWorkflow)
 	server.GET("/omdb/search", omdbHandler.Search)
 	server.GET("/disc/:discId/title/:titleId/rip", driveHandler.RipTitle)
 
