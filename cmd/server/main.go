@@ -56,6 +56,10 @@ func main() {
 	defer driveman.Stop()
 
 	for _, wf := range wfman.GetAllWorkflows() {
+		if wf.Status == model.StatusRipping {
+			wf.Status = model.StatusError
+			wfman.Save(wf)
+		}
 		if wf.Status == model.StatusPending || wf.Status == model.StatusImporting {
 			if wf.Name != nil && wf.Year != nil {
 				go func(w *model.Workflow) {
