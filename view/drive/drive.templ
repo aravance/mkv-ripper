@@ -66,9 +66,9 @@ templ Status(status drive.DriveStatus, disc *drive.Disc) {
 			Ready
 		} else if status == drive.StatusMkv {
 			<span class="spinner-border spinner-border-sm" id="spinner" role="status" aria-hidden="true"></span>
-			Ripping -
-			if disc != nil {
-				{ strconv.Itoa(disc.MkvStatus.Total * 100 / disc.MkvStatus.Max) }%
+			Ripping
+			if disc != nil && disc.MkvStatus != nil {
+				- { strconv.Itoa(disc.MkvStatus.Total * 100 / disc.MkvStatus.Max) }%
 			}
 		} else {
 			Unknown
