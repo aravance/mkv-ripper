@@ -17,12 +17,9 @@ templ Base(title string) {
 			<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
 			<style>
-			  .htmx-indicator{display:none}
-				.htmx-request.htmx-indicator{display:block}
-				.htmx-request .htmx-indicator{display:block}
-			  .htmx-reverse-indicator{display:block}
-				.htmx-request.htmx-reverse-indicator{display:none}
-				.htmx-request .htmx-reverse-indicator{display:none}
+			  .htmx-reverse-indicator{opacity:1}
+				.htmx-request.htmx-reverse-indicator{opacity:0; transition: opacity 200ms ease-in;}
+				.htmx-request .htmx-reverse-indicator{opacity:0; transition: opacity 200ms ease-in;}
 			</style>
 		</head>
 		<body>
