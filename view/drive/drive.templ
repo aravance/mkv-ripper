@@ -37,36 +37,40 @@ templ DiscInfo(disc *drive.Disc, info *makemkv.DiscInfo) {
 				href={ templ.URL(fmt.Sprintf("/disc/%s/title/%d/rip", disc.Uuid, t.Id)) }
 				class="list-group-item list-group-item-action"
 			>
-				<h4>
+				<span class="fs-5 fw-medium">
 					if t.Name != "" {
 						{ strconv.Itoa(t.Id + 1) } - { t.Name }
 					} else {
 						Title { strconv.Itoa(t.Id + 1) }
 					}
-				</h4>
-				<div>File: { t.FileName }</div>
-				<div>Source: { t.SourceFileName }</div>
+				</span>
+				<ul class="fw-light list-unstyled m-0" style="font-size: small;">
+					<li>File: { t.FileName }</li>
+					<li>Source: { t.SourceFileName }</li>
+				</ul>
 			</a>
 		}
 	</div>
 }
 
 templ Status(status drive.DriveStatus, disc *drive.Disc) {
-	<div hx-get="/drive/status" hx-trigger="every 2s">
-		if status == drive.StatusEmpty {
-			No disc
-		} else if status == drive.StatusReading {
+	if status == drive.StatusEmpty {
+		<div>No disc</div>
+	} else if status == drive.StatusReading {
+		<div hx-get="/drive/status" hx-trigger="every 2s">
 			Reading disc
-		} else if status == drive.StatusReady {
-			Ready
-		} else if status == drive.StatusMkv {
+		</div>
+	} else if status == drive.StatusReady {
+		<div>Ready</div>
+	} else if status == drive.StatusMkv {
+		<div hx-get="/drive/status" hx-trigger="every 2s">
 			<span class="spinner-border spinner-border-sm" id="spinner" role="status" aria-hidden="true"></span>
 			Ripping
 			if disc != nil && disc.MkvStatus != nil {
 				- { strconv.Itoa(disc.MkvStatus.Total * 100 / disc.MkvStatus.Max) }%
 			}
-		} else {
-			Unknown
-		}
-	</div>
+		</div>
+	} else {
+		<div>Unknown</div>
+	}
 }
