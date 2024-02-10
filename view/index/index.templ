@@ -6,7 +6,7 @@ import "github.com/aravance/mkv-ripper/drive"
 import "fmt"
 
 templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
-	@layout.Base("mkv-ripper") {
+	@layout.Base("") {
 		<a href="/drive">Drive: { string(drivestat) }</a>
 		if len(workflows) == 0 {
 			<div>No workflows in progress</div>

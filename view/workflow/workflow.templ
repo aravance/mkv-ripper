@@ -9,79 +9,69 @@ import (
 templ Show(wf *model.Workflow) {
 	@layout.Base(wf.Label) {
 		<main>
-			<div class="d-flex align-items-center py-4">
-				<div class="m-auto w-100" style="max-width: 330px;">
-					<h1 class="h3 mb-4 fw-normal">{ wf.Label }</h1>
-					<form hx-post="?" hx-target="#response" hx-indicator="#spinner">
-						<div class="form-floating mb-2">
-							<input type="text" name="name" id="name" class="form-control" placeholder="Name"/>
-							<label for="name" class="form-label">Name</label>
-						</div>
-						<div class="form-floating mb-3">
-							<input type="number" name="year" id="year" class="form-control" placeholder="Year"/>
-							<label for="year" class="form-label">Year</label>
-						</div>
-						<div>
-							<button type="submit" class="btn btn-primary w-100">Submit</button>
-							<span
-								class="spinner-border spinner-border-sm htmx-indicator"
-								id="spinner"
-								role="status"
-								aria-hidden="true"
-							></span>
-						</div>
-					</form>
+			<form hx-post="?" hx-target="#response" hx-indicator="#spinner">
+				<div class="form-floating mb-2">
+					<input type="text" name="name" id="name" class="form-control" placeholder="Name"/>
+					<label for="name" class="form-label">Name</label>
 				</div>
-			</div>
+				<div class="form-floating mb-3">
+					<input type="number" name="year" id="year" class="form-control" placeholder="Year"/>
+					<label for="year" class="form-label">Year</label>
+				</div>
+				<div>
+					<button type="submit" class="btn btn-primary w-100">Submit</button>
+					<span
+						class="spinner-border spinner-border-sm htmx-indicator"
+						id="spinner"
+						role="status"
+						aria-hidden="true"
+					></span>
+				</div>
+			</form>
+			<div id="response"></div>
 		</main>
-		<div id="response"></div>
 	}
 }
 
 templ Edit(wf *model.Workflow) {
-	@layout.Base(wf.Label) {
+	@layout.Base("edit | " + wf.Label) {
 		<main>
-			<div class="d-flex align-items-center py-4">
-				<div class="m-auto w-100" style="max-width: 330px;">
-					<h1 class="h3 mb-4 fw-normal">Edit</h1>
-					<div class="input-group mb-3">
-						<span class="input-group-text px-4" id="search-addon">
-							<div class="position-absolute top-50 translate-middle">
-								<i class="bi-search htmx-reverse-indicator"></i>
-							</div>
-							<div class="position-absolute top-50 translate-middle">
-								<span
-									class="spinner-border spinner-border-sm htmx-indicator"
-									id="spinner"
-									role="status"
-									aria-hidden="true"
-								></span>
-							</div>
-						</span>
-						<div class="form-floating">
-							<input
-								hx-get="/omdb/search?limit=4"
-								hx-trigger="load,keyup changed delay:500ms"
-								hx-target="#results"
-								hx-indicator="#search-addon"
-								class="form-control"
-								type="text"
-								id="q"
-								name="q"
-								aria-label="Search"
-								aria-describedby="search-addon"
-								value={ wf.OriginalName }
-							/>
-							<label for="q">Movie title</label>
-						</div>
+			<div class="input-group mb-3">
+				<span class="input-group-text px-4" id="search-addon">
+					<div class="position-absolute top-50 translate-middle">
+						<i class="bi-search htmx-reverse-indicator"></i>
 					</div>
-					<form
-						id="results"
-						action={ templ.SafeURL(fmt.Sprintf("/workflow/%s/title/%d", wf.DiscId, wf.TitleId)) }
-						method="post"
-					></form>
+					<div class="position-absolute top-50 translate-middle">
+						<span
+							class="spinner-border spinner-border-sm htmx-indicator"
+							id="spinner"
+							role="status"
+							aria-hidden="true"
+						></span>
+					</div>
+				</span>
+				<div class="form-floating">
+					<input
+						hx-get="/omdb/search?limit=4"
+						hx-trigger="load,keyup changed delay:500ms"
+						hx-target="#results"
+						hx-indicator="#search-addon"
+						class="form-control"
+						type="text"
+						id="q"
+						name="q"
+						aria-label="Search"
+						aria-describedby="search-addon"
+						value={ wf.OriginalName }
+					/>
+					<label for="q">Movie title</label>
 				</div>
 			</div>
+			<form
+				id="results"
+				action={ templ.SafeURL(fmt.Sprintf("/workflow/%s/title/%d", wf.DiscId, wf.TitleId)) }
+				method="post"
+			></form>
 		</main>
 	}
 }
