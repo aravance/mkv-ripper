@@ -1,18 +1,27 @@
 package movieview
 
-import "fmt"
 import "github.com/eefret/gomdb"
 
 templ Movie(m *gomdb.MovieResult) {
-	<div class="d-flex align-items-center">
-		<img src={ m.Poster } alt="movie poster" class="p-1 w-25 me-2"/>
-		<div class="d-flex flex-column">
-			<a href={ templ.SafeURL(fmt.Sprintf("https://www.imdb.com/title/%s", m.ImdbID)) }>
+	<div class="d-flex align-items-center" style="height: 110px;">
+		<div class="w-25 d-flex align-items-center">
+			if m.Poster != "N/A" {
+				<img src={ m.Poster } alt="movie poster" class="w-100"/>
+			} else {
+				<i class="bi-film mx-auto"></i>
+			}
+		</div>
+		<div class="d-flex flex-column w-75 ms-2">
+			<span id="title">
 				{ m.Title }
-			</a>
-			<p>
-				Year: { m.Year }
-			</p>
+			</span>
+			<span id="details" style="font-size: x-small;">
+				<ul class="list-inline">
+					<li class="list-inline-item">{ m.Year }</li>
+					<li class="list-inline-item">{ m.Rated }</li>
+					<li class="list-inline-item">{ m.Runtime }</li>
+				</ul>
+			</span>
 		</div>
 	</div>
 }
