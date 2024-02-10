@@ -5,16 +5,17 @@ import "github.com/aravance/mkv-ripper/model"
 import "github.com/aravance/mkv-ripper/drive"
 import "fmt"
 
-templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
+templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*model.Workflow, done []*model.Workflow) {
 	@layout.Base("") {
 		<a href="/drive">Drive: { string(drivestat) }</a>
-		if len(workflows) == 0 {
+		<h4>Active</h4>
+		if len(active) == 0 {
 			<div>No workflows in progress</div>
 		} else {
 			<ul>
-				for _, w := range workflows {
+				for _, w := range active {
 					<li>
-						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d/edit", w.DiscId, w.TitleId)) }>
+						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d", w.DiscId, w.TitleId)) }>
 							if w.Name != nil && *w.Name != "" {
 								{ *w.Name }
 							} else {
@@ -22,6 +23,38 @@ templ Show(drivestat drive.DriveStatus, workflows []*model.Workflow) {
 							}
 						</a>
 						: { string(w.Status) }
+					</li>
+				}
+			</ul>
+		}
+		if len(errored) > 0 {
+			<h4>Errors</h4>
+			<ul>
+				for _, w := range errored {
+					<li>
+						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d", w.DiscId, w.TitleId)) }>
+							if w.Name != nil && *w.Name != "" {
+								{ *w.Name }
+							} else {
+								{ w.Label }
+							}
+						</a>
+					</li>
+				}
+			</ul>
+		}
+		if len(done) > 0 {
+			<h4>Done</h4>
+			<ul>
+				for _, w := range done {
+					<li>
+						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d", w.DiscId, w.TitleId)) }>
+							if w.Name != nil && *w.Name != "" {
+								{ *w.Name }
+							} else {
+								{ w.Label }
+							}
+						</a>
 					</li>
 				}
 			</ul>
