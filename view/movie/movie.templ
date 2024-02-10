@@ -3,7 +3,7 @@ package movieview
 import "github.com/eefret/gomdb"
 
 templ Movie(m *gomdb.MovieResult) {
-	<div class="d-flex align-items-center" style="height: 110px;">
+	<div class="d-flex align-items-center overflow-hidden" style="height: 110px;">
 		<div class="w-25 d-flex align-items-center">
 			if m.Poster != "N/A" {
 				<img src={ m.Poster } alt="movie poster" class="w-100"/>
