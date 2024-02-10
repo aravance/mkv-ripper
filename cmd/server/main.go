@@ -60,7 +60,11 @@ func main() {
 			wf.Status = model.StatusError
 			wfman.Save(wf)
 		}
-		if wf.Status == model.StatusPending || wf.Status == model.StatusImporting {
+		if wf.Status == model.StatusImporting {
+			wf.Status = model.StatusPending
+			wfman.Save(wf)
+		}
+		if wf.Status == model.StatusPending {
 			if wf.Name != nil && wf.Year != nil {
 				go func(w *model.Workflow) {
 					wfman.Ingest(w)
