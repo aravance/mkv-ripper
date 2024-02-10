@@ -80,7 +80,7 @@ func main() {
 
 	indexHandler := handler.NewIndexHandler(driveman, wfman)
 	driveHandler := handler.NewDriveHandler(discdb, driveman, wfman, omdbapi)
-	workflowHandler := handler.NewWorkflowHandler(wfman, omdbapi)
+	workflowHandler := handler.NewWorkflowHandler(wfman, driveman, discdb, omdbapi)
 	omdbHandler := handler.NewOmdbHandler(omdbapi)
 
 	server.GET("/", indexHandler.GetIndex)

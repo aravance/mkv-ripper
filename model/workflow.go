@@ -1,5 +1,7 @@
 package model
 
+import "github.com/aravance/go-makemkv"
+
 type WorkflowStatus string
 
 const (
@@ -27,4 +29,6 @@ type Workflow struct {
 	Name         *string  `json:",omitempty"`
 	Year         *string  `json:",omitempty"`
 	File         *MkvFile `json:",omitempty"`
+
+	MkvStatus *makemkv.Status `json:"-"`
 }

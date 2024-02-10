@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/util"
 	workflowview "github.com/aravance/mkv-ripper/view/workflow"
 	"github.com/aravance/mkv-ripper/workflow"
 	"github.com/eefret/gomdb"
@@ -14,28 +16,73 @@ import (
 )
 
 type WorkflowHandler struct {
-	wfman   workflow.WorkflowManager
-	omdbapi *gomdb.OmdbApi
+	wfman    workflow.WorkflowManager
+	driveman drive.DriveManager
+	discdb   drive.DiscDatabase
+	omdbapi  *gomdb.OmdbApi
 }
 
-func NewWorkflowHandler(wfman workflow.WorkflowManager, omdbapi *gomdb.OmdbApi) WorkflowHandler {
+func NewWorkflowHandler(
+	wfman workflow.WorkflowManager,
+	driveman drive.DriveManager,
+	discdb drive.DiscDatabase,
+	omdbapi *gomdb.OmdbApi,
+) WorkflowHandler {
 	return WorkflowHandler{
-		wfman:   wfman,
-		omdbapi: omdbapi,
+		wfman:    wfman,
+		driveman: driveman,
+		discdb:   discdb,
+		omdbapi:  omdbapi,
 	}
 }
 
 func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
+	var w *model.Workflow
+	var d *drive.Disc
+	var m *gomdb.MovieResult
+
 	discId := c.Param("discId")
 	titleId, err := strconv.Atoi(c.Param("titleId"))
-	var w *model.Workflow
-	if err == nil {
-		w = h.wfman.GetWorkflow(discId, titleId)
-	}
-	if w == nil {
+	if err != nil {
 		return c.NoContent(http.StatusNotFound)
 	}
-	return render(c, workflowview.Show(w))
+
+	w = h.wfman.GetWorkflow(discId, titleId)
+	if w == nil {
+		di, ok := h.discdb.GetDiscInfo(discId)
+		if !ok {
+			return c.NoContent(http.StatusNotFound)
+		}
+		ti := &di.Titles[titleId]
+		name := util.GuessName(di, ti)
+
+		w, _ = h.wfman.NewWorkflow(discId, titleId, di.VolumeName, name)
+		h.wfman.Save(w)
+	}
+
+	d = h.driveman.GetDisc()
+	if d != nil && d.Uuid != discId {
+		d = nil
+	}
+
+	if w.ImdbId != nil {
+		m, err = h.omdbapi.MovieByImdbID(*w.ImdbId)
+	} else {
+		name := w.Name
+		if name == nil {
+			name = &w.OriginalName
+		}
+		m, err = util.GetMovie(h.omdbapi, *name)
+		if err != nil {
+			log.Println("error getting movie:", *name, "err:", err)
+			m = nil
+		}
+	}
+
+	if w == nil && d == nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+	return render(c, workflowview.Show(w, d, m))
 }
 
 func (h WorkflowHandler) EditWorkflow(c echo.Context) error {

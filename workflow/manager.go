@@ -60,6 +60,7 @@ func (m *workflowManager) Start(wf *model.Workflow) error {
 	go func() {
 		for stat := range statchan {
 			disc.MkvStatus = &stat
+			wf.MkvStatus = &stat
 		}
 	}()
 
