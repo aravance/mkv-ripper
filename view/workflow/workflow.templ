@@ -1,21 +1,13 @@
 package workflowview
 
 import (
-	"fmt"
-	"net/url"
-
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/util"
 	"github.com/aravance/mkv-ripper/view/layout"
 	"github.com/aravance/mkv-ripper/view/movie"
 	"github.com/eefret/gomdb"
 )
-
-func wfUrl(discid string, titleid int, parts ...string) templ.SafeURL {
-	base := fmt.Sprintf("/workflow/%s/title/%d", discid, titleid)
-	u, _ := url.JoinPath(base, parts...)
-	return templ.SafeURL(u)
-}
 
 templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 	@layout.Base(wf.Label) {
@@ -24,14 +16,21 @@ templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 				if mov != nil {
 					@movieview.Movie(mov)
 				}
-				<a href={ wfUrl(wf.DiscId, wf.TitleId, "edit") } class="position-absolute bottom-0 start-0 p-2">
+				<a href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) } class="position-absolute bottom-0 start-0 p-2">
 					<i class="fa-solid fa-pen-to-square fa-xl"></i>
 				</a>
 			</div>
-			{ string(wf.Status) }
+			<div>
+				{ string(wf.Status) }
+			</div>
 			if disc != nil && wf != nil && disc.Uuid == wf.DiscId {
-				// workflow from current disc
-				Disc is currently inserted
+				if wf.Status == model.StatusError || wf.Status == model.StatusStart || wf.Status == model.StatusDone {
+					<form id="rip" action={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "rip")) } method="get">
+						<button type="submit" class="btn btn-lg btn-primary w-100">
+							Rip Title
+						</button>
+					</form>
+				}
 			}
 		</main>
 	}
@@ -77,7 +76,7 @@ templ Edit(wf *model.Workflow) {
 					<label for="q">Movie title</label>
 				</div>
 			</div>
-			<form id="results" action={ wfUrl(wf.DiscId, wf.TitleId) } method="post"></form>
+			<form id="results" action={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) } method="post"></form>
 		</main>
 	}
 }

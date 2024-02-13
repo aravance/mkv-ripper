@@ -134,3 +134,44 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	}
 	return c.Redirect(http.StatusSeeOther, "/")
 }
+
+func (h WorkflowHandler) RipTitle(c echo.Context) error {
+	discId := c.Param("discId")
+	titleId, err := strconv.Atoi(c.Param("titleId"))
+	status := h.driveman.Status()
+	if err != nil {
+		return c.String(http.StatusNotFound, "no title found")
+	}
+	if status == drive.StatusEmpty {
+		return c.String(http.StatusNotFound, "drive is empty")
+	}
+	if status != drive.StatusReady {
+		return c.String(http.StatusNotFound, "drive is busy")
+	}
+	disc := h.driveman.GetDisc()
+	if disc.Uuid != discId {
+		return c.String(http.StatusNotFound, "disc changed")
+	}
+	discInfo, ok := h.discdb.GetDiscInfo(discId)
+	if !ok {
+		return c.String(http.StatusNotFound, "disc info not found")
+	}
+	titleInfo := discInfo.Titles[titleId]
+	name := util.GuessName(discInfo, &titleInfo)
+
+	wf, ok := h.wfman.NewWorkflow(discId, titleId, disc.Label, name)
+
+	if wf.Name == nil || *wf.Name == "" || wf.Year == nil || *wf.Year == "" {
+		if movie, err := util.GetMovie(h.omdbapi, wf.OriginalName); err != nil {
+			log.Println("failed to GetMovie", err)
+		} else {
+			wf.Name = &movie.Title
+			wf.Year = &movie.Year
+			wf.ImdbId = &movie.ImdbID
+			h.wfman.Save(wf)
+		}
+	}
+
+	go h.wfman.Start(wf)
+	return c.Redirect(http.StatusSeeOther, util.WorkflowUrl(wf.DiscId, wf.TitleId))
+}

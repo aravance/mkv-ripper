@@ -86,11 +86,12 @@ func main() {
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
-	server.GET("/workflow/:discId/title/:titleId", workflowHandler.GetWorkflow)
-	server.POST("/workflow/:discId/title/:titleId", workflowHandler.PostWorkflow)
-	server.GET("/workflow/:discId/title/:titleId/edit", workflowHandler.EditWorkflow)
+	server.GET("/disc/:discId/title/:titleId", workflowHandler.GetWorkflow)
+	server.POST("/disc/:discId/title/:titleId", workflowHandler.PostWorkflow)
+	server.GET("/disc/:discId/title/:titleId/edit", workflowHandler.EditWorkflow)
+	// TODO make this a post
+	server.GET("/disc/:discId/title/:titleId/rip", workflowHandler.RipTitle)
 	server.GET("/omdb/search", omdbHandler.Search)
-	server.GET("/disc/:discId/title/:titleId/rip", driveHandler.RipTitle)
 
 	go func() {
 		if err := server.Start(":8080"); !errors.Is(err, http.ErrServerClosed) {

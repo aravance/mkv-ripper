@@ -1,12 +1,16 @@
 package driveview
 
-import "github.com/aravance/mkv-ripper/drive"
-import "github.com/aravance/mkv-ripper/view/layout"
-import "github.com/aravance/mkv-ripper/view/movie"
-import "github.com/eefret/gomdb"
-import "strconv"
-import "github.com/aravance/go-makemkv"
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/aravance/go-makemkv"
+	"github.com/aravance/mkv-ripper/drive"
+	"github.com/aravance/mkv-ripper/view/layout"
+	"github.com/aravance/mkv-ripper/view/movie"
+	"github.com/eefret/gomdb"
+	"github.com/aravance/mkv-ripper/util"
+)
 
 templ Show(status drive.DriveStatus, disc *drive.Disc, movie *gomdb.MovieResult, info *makemkv.DiscInfo) {
 	@layout.Base("drive") {
@@ -22,9 +26,11 @@ templ Show(status drive.DriveStatus, disc *drive.Disc, movie *gomdb.MovieResult,
 				if movie != nil {
 					@movieview.Movie(movie)
 				}
-				if info != nil {
-					@DiscInfo(disc, info)
-				}
+				<div class="pt-2">
+					if info != nil {
+						@DiscInfo(disc, info)
+					}
+				</div>
 			</div>
 		}
 	}
@@ -34,19 +40,19 @@ templ DiscInfo(disc *drive.Disc, info *makemkv.DiscInfo) {
 	<div class="list-group">
 		for _, t := range info.Titles {
 			<a
-				href={ templ.URL(fmt.Sprintf("/disc/%s/title/%d/rip", disc.Uuid, t.Id)) }
+				href={ templ.URL(util.WorkflowUrl(disc.Uuid, t.Id)) }
 				class="list-group-item list-group-item-action"
 			>
 				<span class="fs-5 fw-medium">
 					if t.Name != "" {
-						{ strconv.Itoa(t.Id + 1) } - { t.Name }
+						{ fmt.Sprintf("%d - %s", t.Id+1, t.Name) }
 					} else {
-						Title { strconv.Itoa(t.Id + 1) }
+						{ fmt.Sprintf("Title %d", t.Id+1) }
 					}
 				</span>
 				<ul class="fw-light list-unstyled m-0" style="font-size: small;">
-					<li>File: { t.FileName }</li>
-					<li>Source: { t.SourceFileName }</li>
+					<li>{ t.FileName }</li>
+					<li>{ t.SourceFileName }</li>
 				</ul>
 			</a>
 		}

@@ -1,9 +1,11 @@
 package indexview
 
-import "github.com/aravance/mkv-ripper/view/layout"
-import "github.com/aravance/mkv-ripper/model"
-import "github.com/aravance/mkv-ripper/drive"
-import "fmt"
+import (
+	"github.com/aravance/mkv-ripper/drive"
+	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/util"
+	"github.com/aravance/mkv-ripper/view/layout"
+)
 
 templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*model.Workflow, done []*model.Workflow) {
 	@layout.Base("") {
@@ -15,7 +17,7 @@ templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*mod
 			<ul>
 				for _, w := range active {
 					<li>
-						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d", w.DiscId, w.TitleId)) }>
+						<a href={ templ.SafeURL(util.WorkflowUrl(w.DiscId, w.TitleId)) }>
 							if w.Name != nil && *w.Name != "" {
 								{ *w.Name }
 							} else {
@@ -32,7 +34,7 @@ templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*mod
 			<ul>
 				for _, w := range errored {
 					<li>
-						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d", w.DiscId, w.TitleId)) }>
+						<a href={ templ.SafeURL(util.WorkflowUrl(w.DiscId, w.TitleId)) }>
 							if w.Name != nil && *w.Name != "" {
 								{ *w.Name }
 							} else {
@@ -48,7 +50,7 @@ templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*mod
 			<ul>
 				for _, w := range done {
 					<li>
-						<a href={ templ.URL(fmt.Sprintf("/workflow/%s/title/%d", w.DiscId, w.TitleId)) }>
+						<a href={ templ.SafeURL(util.WorkflowUrl(w.DiscId, w.TitleId)) }>
 							if w.Name != nil && *w.Name != "" {
 								{ *w.Name }
 							} else {
