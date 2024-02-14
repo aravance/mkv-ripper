@@ -16,7 +16,10 @@ templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 				if mov != nil {
 					@movieview.Movie(mov)
 				}
-				<a href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) } class="position-absolute bottom-0 start-0 p-2">
+				<a
+					href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) }
+					class="position-absolute bottom-0 start-0 p-2"
+				>
 					<i class="fa-solid fa-pen-to-square fa-xl"></i>
 				</a>
 			</div>
