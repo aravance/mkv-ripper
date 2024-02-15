@@ -12,16 +12,26 @@ import (
 templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 	@layout.Base(wf.Label) {
 		<main>
-			<div class="position-relative">
+			<div id="moviedetail" class="position-relative">
 				if mov != nil {
 					@movieview.Movie(mov)
+					<a
+						href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) }
+						class="position-absolute bottom-0 start-0 p-2"
+					>
+						<i class="fa-solid fa-pen-to-square fa-xl"></i>
+					</a>
+				} else {
+					<span>
+						<a
+							href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) }
+							class="p-2"
+						>
+							<i class="fa-solid fa-pen-to-square fa-xl"></i>
+						</a>
+						{ disc.Label }
+					</span>
 				}
-				<a
-					href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) }
-					class="position-absolute bottom-0 start-0 p-2"
-				>
-					<i class="fa-solid fa-pen-to-square fa-xl"></i>
-				</a>
 			</div>
 			<div>
 				{ string(wf.Status) }
@@ -79,7 +89,7 @@ templ Edit(wf *model.Workflow) {
 					<label for="q">Movie title</label>
 				</div>
 			</div>
-			<form id="results" action={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) } method="post"></form>
+			<form id="results" action={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId)) } method="post"></form>
 		</main>
 	}
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,12 +32,13 @@ func (h OmdbHandler) Search(c echo.Context) error {
 		SearchType: "movie",
 	}
 	res, err := h.omdbapi.Search(qd)
-	if err != nil {
+	if res == nil && err != nil {
 		log.Println("error searching omdb q:", q, "err:", err)
 		return err
 	}
 
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
+	limit = min(limit, len(res.Search))
 	if limit <= 0 {
 		limit = len(res.Search)
 	}
@@ -57,5 +59,10 @@ func (h OmdbHandler) Search(c echo.Context) error {
 		}(i, r.ImdbID)
 	}
 	wg.Wait()
+	movies = slices.DeleteFunc(movies, isNil)
 	return render(c, omdbview.Search(movies))
+}
+
+func isNil(m *gomdb.MovieResult) bool {
+	return m == nil
 }

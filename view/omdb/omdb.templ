@@ -5,12 +5,16 @@ import "github.com/aravance/mkv-ripper/view/movie"
 
 templ Search(movies []*gomdb.MovieResult) {
 	<div class="list-group">
-		for _, m := range movies {
-			<button class="list-group-item list-group-item-action p-0 overflow-hidden" type="submit" name="imdbid" value={ m.ImdbID }>
-				<div>
-					@movieview.Movie(m)
-				</div>
-			</button>
+		if movies == nil || len(movies) == 0 {
+			No movie results found
+		} else {
+			for _, m := range movies {
+				<button class="list-group-item list-group-item-action p-0 overflow-hidden" type="submit" name="imdbid" value={ m.ImdbID }>
+					<div>
+						@movieview.Movie(m)
+					</div>
+				</button>
+			}
 		}
 	</div>
 }
