@@ -39,10 +39,7 @@ templ Show(status drive.DriveStatus, disc *drive.Disc, movie *gomdb.MovieResult,
 templ DiscInfo(disc *drive.Disc, info *makemkv.DiscInfo) {
 	<div class="list-group">
 		for _, t := range info.Titles {
-			<a
-				href={ templ.URL(util.WorkflowUrl(disc.Uuid, t.Id)) }
-				class="list-group-item list-group-item-action"
-			>
+			<a href={ templ.URL(util.WorkflowUrl(disc.Uuid, t.Id)) } class="list-group-item list-group-item-action">
 				<span class="fs-5 fw-medium">
 					if t.Name != "" {
 						{ fmt.Sprintf("%d - %s", t.Id+1, t.Name) }
