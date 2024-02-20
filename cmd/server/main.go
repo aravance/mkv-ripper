@@ -26,7 +26,7 @@ import (
 )
 
 func main() {
-	cfg := parseConfig()
+	cfg := ParseConfigFile("mkv-ripper.toml")
 	outdir := cfg.Rip
 	targets := make([]*url.URL, len(cfg.Targets))
 	for i, t := range cfg.Targets {

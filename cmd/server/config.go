@@ -27,18 +27,23 @@ type Config struct {
 	Log     string
 	Rip     string
 	Port    int
-	Omdb    OmdbConfig
+	Omdb    *OmdbConfig
 	Targets []TargetConfig
 }
 
-func parseConfig() Config {
+func ParseConfigFile(file string) Config {
 	var config Config
-	if b, err := os.ReadFile("mkv-ripper.toml"); err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing mkv-ripper.toml: %v", err)
+	if b, err := os.ReadFile(file); err != nil {
+		fmt.Fprintf(os.Stderr, "error parsing %s: %v", file, err)
 		config.Targets = make([]TargetConfig, 0)
 	} else {
-		toml.Unmarshal(b, &config)
+		parseConfigBytes(&config, b)
 	}
+	return config
+}
+
+func parseConfigBytes(config *Config, b []byte) {
+	toml.Unmarshal(b, config)
 	if config.Data == "" {
 		config.Data = DEFAULT_DATA_DIR
 	}
@@ -51,5 +56,7 @@ func parseConfig() Config {
 	if config.Port == 0 {
 		config.Port = DEFAULT_PORT
 	}
-	return config
+	if config.Targets == nil {
+		config.Targets = make([]TargetConfig, 0)
+	}
 }
