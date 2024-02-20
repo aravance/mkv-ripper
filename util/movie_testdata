@@ -1,0 +1,845 @@
+{
+  "toyStory3": {
+    "Titles": [
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEGH/ISO/HEVC",
+            "CodecShort": "MpegH",
+            "CodecLong": "MpegH HEVC Main10@L5.1",
+            "VideoSize": "3840x2160",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 0,
+        "Name": "Toy Story 3",
+        "ChapterCount": 34,
+        "Duration": 6151000000000,
+        "FileSize": 43417466880,
+        "SourceFileName": "00800.mpls",
+        "Segments": null,
+        "FileName": "Toy Story 3_t00.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEGH/ISO/HEVC",
+            "CodecShort": "MpegH",
+            "CodecLong": "MpegH HEVC Main10@L5.1",
+            "VideoSize": "3840x2160",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 1,
+        "Name": "Toy Story 3",
+        "ChapterCount": 34,
+        "Duration": 6181000000000,
+        "FileSize": 43320059904,
+        "SourceFileName": "00802.mpls",
+        "Segments": null,
+        "FileName": "Toy Story 3_t01.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEGH/ISO/HEVC",
+            "CodecShort": "MpegH",
+            "CodecLong": "MpegH HEVC Main10@L5.1",
+            "VideoSize": "3840x2160",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 2,
+        "Name": "Toy Story 3",
+        "ChapterCount": 34,
+        "Duration": 6181000000000,
+        "FileSize": 43314720768,
+        "SourceFileName": "00801.mpls",
+        "Segments": null,
+        "FileName": "Toy Story 3_t02.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      }
+    ],
+    "DiscType": "Blu-ray disc",
+    "Name": "Toy Story 3",
+    "LangCode": "eng",
+    "LangName": "English",
+    "VolumeName": "TOY_STORY_3"
+  },
+  "toyStory4": {
+    "Titles": [
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_DTS",
+            "CodecShort": "DTS-HD MA",
+            "CodecLong": "DTS-HD Master Audio",
+            "BitRate": "",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 0,
+        "Name": "Toy Story 4",
+        "ChapterCount": 34,
+        "Duration": 6003000000000,
+        "FileSize": 26112890880,
+        "SourceFileName": "00801.mpls",
+        "Segments": null,
+        "FileName": "Toy Story 4_t00.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_DTS",
+            "CodecShort": "DTS-HD MA",
+            "CodecLong": "DTS-HD Master Audio",
+            "BitRate": "",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 1,
+        "Name": "Toy Story 4",
+        "ChapterCount": 34,
+        "Duration": 6003000000000,
+        "FileSize": 26086576128,
+        "SourceFileName": "00802.mpls",
+        "Segments": null,
+        "FileName": "Toy Story 4_t01.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_DTS",
+            "CodecShort": "DTS-HD MA",
+            "CodecLong": "DTS-HD Master Audio",
+            "BitRate": "",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 2,
+        "Name": "Toy Story 4",
+        "ChapterCount": 34,
+        "Duration": 6003000000000,
+        "FileSize": 26134456320,
+        "SourceFileName": "00800.mpls",
+        "Segments": null,
+        "FileName": "Toy Story 4_t02.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      }
+    ],
+    "DiscType": "Blu-ray disc",
+    "Name": "Toy Story 4",
+    "LangCode": "eng",
+    "LangName": "English",
+    "VolumeName": "TOY_STORY_4"
+  },
+  "laLaLand": {
+    "Titles": [
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 0,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7728000000000,
+        "FileSize": 35563689984,
+        "SourceFileName": "00436.mpls",
+        "Segments": null,
+        "FileName": "La La Land-SPBD Copy Disclaimer Playlist_t00.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 1,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00533.mpls",
+        "Segments": null,
+        "FileName": "La La Land-FPL_MainFeature_t01.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 2,
+        "Name": "La La Land",
+        "ChapterCount": 2,
+        "Duration": 4735000000000,
+        "FileSize": 20640393216,
+        "SourceFileName": "00832.mpls(10)",
+        "Segments": null,
+        "FileName": "La La Land-SF_PlayAll_t02.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Stereo",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_AC3",
+            "CodecShort": "DD",
+            "CodecLong": "Dolby Digital",
+            "BitRate": "192 Kb/s",
+            "ChannelCount": 2,
+            "SampleRate": 48000,
+            "SampleSize": 0,
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 3,
+        "Name": "La La Land",
+        "ChapterCount": 11,
+        "Duration": 4798000000000,
+        "FileSize": 10988193792,
+        "SourceFileName": "00963.mpls",
+        "Segments": null,
+        "FileName": "La La Land-SF_PlayAll_F_t03.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 4,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00014.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t04.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 5,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00021.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t05.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 6,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00027.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t06.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 7,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00029.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t07.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 8,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00030.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t08.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 9,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00040.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t09.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      },
+      {
+        "VideoStreams": [
+          {
+            "Id": 0,
+            "Name": "",
+            "CodecId": "V_MPEG4/ISO/AVC",
+            "CodecShort": "Mpeg4",
+            "CodecLong": "Mpeg4 AVC High@L4.1",
+            "VideoSize": "1920x1080",
+            "AspectRatio": "16:9",
+            "FrameRate": "23.976 (24000/1001)",
+            "StreamFlags": 0,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "AudioStreams": [
+          {
+            "Id": 1,
+            "Name": "Surround 7.1",
+            "LangCode": "eng",
+            "LangName": "English",
+            "CodecId": "A_TRUEHD",
+            "CodecShort": "TrueHD",
+            "CodecLong": "TrueHD Atmos",
+            "BitRate": "128 Kb/s",
+            "ChannelCount": 8,
+            "SampleRate": 48000,
+            "SampleSize": 24,
+            "StreamFlags": 1024,
+            "MetadataLangCode": "eng",
+            "MetadataLangName": "English",
+            "ConversionType": "( Lossless conversion )"
+          }
+        ],
+        "SubtitleStreams": null,
+        "Id": 10,
+        "Name": "La La Land",
+        "ChapterCount": 16,
+        "Duration": 7668000000000,
+        "FileSize": 35472242688,
+        "SourceFileName": "00044.mpls",
+        "Segments": null,
+        "FileName": "La La Land_t10.mkv",
+        "MetadataLangCode": "eng",
+        "MetadataLangName": "English"
+      }
+    ],
+    "DiscType": "Blu-ray disc",
+    "Name": "La La Land",
+    "LangCode": "eng",
+    "LangName": "English",
+    "VolumeName": "LA_LA_LAND"
+  }
+}

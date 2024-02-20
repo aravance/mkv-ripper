@@ -151,7 +151,7 @@ func handleDisc(
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if movie, err := util.GetMovie(omdbapi, name); err != nil {
+			if movie, err := util.GetMovie(name, omdbapi); err != nil {
 				log.Println("failed to fetch movie details:", name)
 			} else {
 				wf.Name = &movie.Title

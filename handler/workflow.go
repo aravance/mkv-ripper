@@ -72,7 +72,7 @@ func (h WorkflowHandler) GetWorkflow(c echo.Context) error {
 		if name == nil {
 			name = &w.OriginalName
 		}
-		m, err = util.GetMovie(h.omdbapi, *name)
+		m, err = util.GetMovie(*name, h.omdbapi)
 		if err != nil {
 			log.Println("error getting movie:", *name, "err:", err)
 			m = nil
@@ -162,7 +162,7 @@ func (h WorkflowHandler) RipTitle(c echo.Context) error {
 	wf, ok := h.wfman.NewWorkflow(discId, titleId, disc.Label, name)
 
 	if wf.Name == nil || *wf.Name == "" || wf.Year == nil || *wf.Year == "" {
-		if movie, err := util.GetMovie(h.omdbapi, wf.OriginalName); err != nil {
+		if movie, err := util.GetMovie(wf.OriginalName, h.omdbapi); err != nil {
 			log.Println("failed to GetMovie", err)
 		} else {
 			wf.Name = &movie.Title

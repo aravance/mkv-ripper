@@ -38,7 +38,7 @@ func (d DriveHandler) GetDrive(c echo.Context) error {
 			if main != nil {
 				var err error
 				name := util.GuessName(info, main)
-				movie, err = util.GetMovie(d.omdbapi, name)
+				movie, err = util.GetMovie(name, d.omdbapi)
 				if err != nil {
 					log.Println("error fetching movie:", name, "err:", err)
 					movie = nil
@@ -92,7 +92,7 @@ func (d DriveHandler) RipTitle(c echo.Context) error {
 	wf, ok := d.workflowManager.NewWorkflow(discId, titleId, disc.Label, name)
 
 	if wf.Name == nil || *wf.Name == "" || wf.Year == nil || *wf.Year == "" {
-		if movie, err := util.GetMovie(d.omdbapi, wf.OriginalName); err != nil {
+		if movie, err := util.GetMovie(wf.OriginalName, d.omdbapi); err != nil {
 			log.Println("failed to GetMovie", err)
 		} else {
 			wf.Name = &movie.Title
