@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -94,7 +95,7 @@ func main() {
 	server.GET("/omdb/search", omdbHandler.Search)
 
 	go func() {
-		if err := server.Start(":8080"); !errors.Is(err, http.ErrServerClosed) {
+		if err := server.Start(fmt.Sprintf(":%d", cfg.Port)); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalln("server error", err)
 		}
 	}()

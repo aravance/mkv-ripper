@@ -10,6 +10,7 @@ import (
 const DEFAULT_DATA_DIR = "."
 const DEFAULT_LOG_DIR = "."
 const DEFAULT_RIP_DIR = "."
+const DEFAULT_PORT = 8080
 
 type OmdbConfig struct {
 	Apikey string
@@ -25,6 +26,7 @@ type Config struct {
 	Data    string
 	Log     string
 	Rip     string
+	Port    int
 	Omdb    OmdbConfig
 	Targets []TargetConfig
 }
@@ -45,6 +47,9 @@ func parseConfig() Config {
 	}
 	if config.Rip == "" {
 		config.Rip = DEFAULT_RIP_DIR
+	}
+	if config.Port == 0 {
+		config.Port = DEFAULT_PORT
 	}
 	return config
 }
