@@ -42,6 +42,22 @@ func (i IndexHandler) GetIndex(c echo.Context) error {
 		}
 	}
 
+	done = slices.DeleteFunc(done, func(wf *model.Workflow) bool {
+		return slices.ContainsFunc(done, func(o *model.Workflow) bool {
+			return o.DiscId == wf.DiscId && o.TitleId > wf.TitleId
+		})
+	})
+
+	errored = slices.DeleteFunc(errored, func(wf *model.Workflow) bool {
+		matches := func(o *model.Workflow) bool {
+			if wf == nil {
+				return o == nil
+			}
+			return wf.ImdbId != nil && o.ImdbId != nil && *wf.ImdbId == *o.ImdbId
+		}
+		return slices.ContainsFunc(done, matches) || slices.ContainsFunc(active, matches)
+	})
+
 	slices.SortFunc(active, compareWorkflows)
 	slices.SortFunc(errored, compareWorkflows)
 	slices.SortFunc(done, compareWorkflows)
@@ -84,5 +100,8 @@ func compareWorkflows(a, b *model.Workflow) int {
 	if comp != 0 {
 		return comp
 	}
-	return strings.Compare(a.DiscId, b.DiscId)
+	if a.DiscId != b.DiscId {
+		return strings.Compare(a.DiscId, b.DiscId)
+	}
+	return b.TitleId - a.TitleId
 }
