@@ -90,6 +90,7 @@ func main() {
 	server.GET("/disc/:discId/title/:titleId", workflowHandler.GetWorkflow)
 	server.POST("/disc/:discId/title/:titleId", workflowHandler.PostWorkflow)
 	server.GET("/disc/:discId/title/:titleId/edit", workflowHandler.EditWorkflow)
+	server.GET("/disc/:discId/title/:titleId/status", workflowHandler.Status)
 	// TODO make this a post
 	server.GET("/disc/:discId/title/:titleId/rip", workflowHandler.RipTitle)
 	server.GET("/omdb/search", omdbHandler.Search)

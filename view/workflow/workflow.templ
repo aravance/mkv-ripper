@@ -1,6 +1,9 @@
 package workflowview
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
@@ -27,8 +30,8 @@ templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 					</span>
 				}
 			</div>
-			<div>
-				{ string(wf.Status) }
+			<div id="status">
+				@Status(wf)
 			</div>
 			if disc != nil && wf != nil && disc.Uuid == wf.DiscId {
 				if wf.Status == model.StatusError || wf.Status == model.StatusStart || wf.Status == model.StatusDone {
@@ -43,10 +46,37 @@ templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 	}
 }
 
+func wfPercent(wf *model.Workflow) int {
+	if wf.MkvStatus == nil {
+		return 0
+	}
+	return 100 * wf.MkvStatus.Total / wf.MkvStatus.Max
+}
+
 templ Status(wf *model.Workflow) {
-	<div>
-		Status
-	</div>
+	if wf.Status == model.StatusRipping {
+		if wf.MkvStatus != nil && wf.MkvStatus.Total == wf.MkvStatus.Max {
+			<div>
+				TODO Done
+			</div>
+		} else {
+			<div hx-get={ util.WorkflowUrl(wf.DiscId, wf.TitleId, "status") } hx-target="#status" hx-trigger="every 2s">
+				{ string(wf.Status) }
+				<div class="progress" role="progressbar" aria-label="Animated striped example" aria-valuenow={ strconv.Itoa(wfPercent(wf)) } aria-valuemin="0" aria-valuemax="100">
+					// https://github.com/a-h/templ/issues/425
+					@templ.Raw(fmt.Sprintf(`<div class="progress-bar progress-bar-striped progress-bar-animated" style="width: %d%%"</div>`, wfPercent(wf)))
+				</div>
+			</div>
+		}
+	} else if wf.Status == model.StatusImporting {
+		<div hx-get={ util.WorkflowUrl(wf.DiscId, wf.TitleId, "status") } hx-target="#status" hx-trigger="every 2s">
+			{ string(wf.Status) }
+		</div>
+	} else {
+		<div>
+			{ string(wf.Status) }
+		</div>
+	}
 }
 
 templ Edit(wf *model.Workflow) {

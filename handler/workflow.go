@@ -135,6 +135,19 @@ func (h WorkflowHandler) PostWorkflow(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/")
 }
 
+func (h WorkflowHandler) Status(c echo.Context) error {
+	discId := c.Param("discId")
+	titleId, err := strconv.Atoi(c.Param("titleId"))
+	var w *model.Workflow
+	if err == nil {
+		w = h.wfman.GetWorkflow(discId, titleId)
+	}
+	if w == nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+	return render(c, workflowview.Status(w))
+}
+
 func (h WorkflowHandler) RipTitle(c echo.Context) error {
 	discId := c.Param("discId")
 	titleId, err := strconv.Atoi(c.Param("titleId"))
