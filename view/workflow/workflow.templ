@@ -15,7 +15,7 @@ import (
 templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 	@layout.Base(wf.Label) {
 		<main>
-			<div id="moviedetail" class="position-relative">
+			<div id="moviedetail" class="position-relative mb-2">
 				if mov != nil {
 					@movieview.Movie(mov)
 					<a href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "edit")) } class="position-absolute bottom-0 start-0 p-2">
@@ -58,12 +58,15 @@ func wfPercent(wf *model.Workflow) int {
 	}
 }
 
+css loading(percent int) {
+	width: { fmt.Sprintf("%d%%", percent) };
+}
+
 templ Status(wf *model.Workflow) {
 	if wf.Status == model.StatusRipping || wf.Status == model.StatusImporting {
 		<div hx-get={ util.WorkflowUrl(wf.DiscId, wf.TitleId, "status") } hx-target="#status" hx-trigger="every 2s">
 			<div class="progress text-center fs-5" role="progressbar" style="height: 28px;" aria-label="rip progress" aria-valuenow={ strconv.Itoa(wfPercent(wf)) } aria-valuemin="0" aria-valuemax="100">
-				// https://github.com/a-h/templ/issues/425
-				@templ.Raw(fmt.Sprintf(`<div class="progress-bar progress-bar-striped progress-bar-animated" style="width: %d%%"></div>`, wfPercent(wf)))
+				<div class={ "progress-bar", "progress-bar-striped", "progress-bar-animated", loading(wfPercent(wf)) } id="progress-bar"></div>
 				<div class="position-absolute start-0 end-0 overflow-hidden">
 					if wf.Status == model.StatusRipping {
 						if wf.MkvStatus != nil && wf.MkvStatus.Total == wf.MkvStatus.Max {
