@@ -80,7 +80,9 @@ func (m *driveManager) GetDiscInfo() (*makemkv.DiscInfo, error) {
 	}
 	defer m.setIdle()
 
-	job := makemkv.Info(m.device, makemkv.MkvOptions{})
+	job := makemkv.Info(m.device, makemkv.MkvOptions{
+		Minlength: makemkv.Intopt(3600),
+	})
 	if info, err := job.Run(); err != nil {
 		log.Println("error running makemkv info", err)
 		return info, err

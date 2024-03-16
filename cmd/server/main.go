@@ -120,7 +120,7 @@ func handleDisc(
 	omdbapi *gomdb.OmdbApi,
 ) {
 	disc := driveman.GetDisc()
-	if disc == nil {
+	if disc == nil || (disc.Uuid == "" && disc.Label == "") {
 		return
 	}
 
