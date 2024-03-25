@@ -34,7 +34,7 @@ type Config struct {
 func ParseConfigFile(file string) Config {
 	var config Config
 	if b, err := os.ReadFile(file); err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing %s: %v", file, err)
+		fmt.Fprintf(os.Stderr, "error parsing %s: %v\n", file, err)
 		config.Targets = make([]TargetConfig, 0)
 	} else {
 		parseConfigBytes(&config, b)

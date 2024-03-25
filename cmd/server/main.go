@@ -27,6 +27,10 @@ import (
 
 func main() {
 	cfg := ParseConfigFile("mkv-ripper.toml")
+	if cfg.Omdb == nil || cfg.Omdb.Apikey == "" {
+		log.Fatalln("must set omdb apikey")
+	}
+
 	outdir := cfg.Rip
 	targets := make([]*url.URL, len(cfg.Targets))
 	for i, t := range cfg.Targets {
