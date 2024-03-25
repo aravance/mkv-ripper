@@ -3,12 +3,12 @@ module github.com/aravance/mkv-ripper
 go 1.22.0
 
 require (
-	github.com/a-h/templ v0.2.598
+	github.com/a-h/templ v0.2.648
 	github.com/aravance/go-makemkv v0.0.0-20240125221345-694e70b080e6
 	github.com/eefret/gomdb v0.0.0-20171206153129-8a1e0abd4449
 	github.com/jochenvg/go-udev v0.0.0-20171110120927-d6b62d56d37b
 	github.com/labstack/echo/v4 v4.11.4
-	github.com/pelletier/go-toml/v2 v2.1.1
+	github.com/pelletier/go-toml/v2 v2.2.0
 )
 
 require (
