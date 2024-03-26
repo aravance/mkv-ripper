@@ -23,12 +23,13 @@ type TargetConfig struct {
 }
 
 type Config struct {
-	Data    string
-	Log     string
-	Rip     string
-	Port    int
-	Omdb    *OmdbConfig
-	Targets []TargetConfig
+	Data        string
+	Log         string
+	Rip         string
+	Port        int
+	Omdb        *OmdbConfig
+	Targets     []TargetConfig
+	UseMovieDir *bool
 }
 
 func ParseConfigFile(file string) Config {
@@ -58,5 +59,9 @@ func parseConfigBytes(config *Config, b []byte) {
 	}
 	if config.Targets == nil {
 		config.Targets = make([]TargetConfig, 0)
+	}
+	if config.UseMovieDir == nil {
+		def := false
+		config.UseMovieDir = &def
 	}
 }

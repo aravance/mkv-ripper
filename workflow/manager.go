@@ -102,9 +102,8 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 	wf.Status = model.StatusImporting
 	m.Save(wf)
 
-	var err error
 	for _, target := range m.targets {
-		ingester, err := ingest.NewIngester(target)
+		ingester, err := ingest.NewIngester(target, m.useMovieDir)
 		if err != nil {
 			log.Println("error finding ingester", err, "for target", target)
 			continue
@@ -116,22 +115,21 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 		}
 	}
 
-	if err == nil {
-		log.Println("cleaning workflow")
-		m.Clean(wf)
-		wf.Status = model.StatusDone
-		m.Save(wf)
-	}
+	log.Println("cleaning workflow")
+	m.Clean(wf)
+	wf.Status = model.StatusDone
+	m.Save(wf)
 	return nil
 }
 
 type workflowManager struct {
-	workflows map[string]map[int]*model.Workflow
-	driveman  drive.DriveManager
-	discdb    drive.DiscDatabase
-	targets   []*url.URL
-	outdir    string
-	file      string
+	workflows   map[string]map[int]*model.Workflow
+	driveman    drive.DriveManager
+	discdb      drive.DiscDatabase
+	targets     []*url.URL
+	outdir      string
+	file        string
+	useMovieDir bool
 }
 
 func newWorkflow(discId string, titleId int, label string, name string) *model.Workflow {
@@ -147,18 +145,26 @@ func newWorkflow(discId string, titleId int, label string, name string) *model.W
 	}
 }
 
-func NewJsonWorkflowManager(driveman drive.DriveManager, discdb drive.DiscDatabase, targets []*url.URL, outdir string, file string) WorkflowManager {
+func NewJsonWorkflowManager(
+	driveman drive.DriveManager,
+	discdb drive.DiscDatabase,
+	targets []*url.URL,
+	outdir string,
+	file string,
+	useMovieDir bool,
+) WorkflowManager {
 	workflows, err := loadWorkflowJson(file)
 	if err != nil {
 		workflows = make(map[string]map[int]*model.Workflow)
 	}
 	m := workflowManager{
-		workflows: workflows,
-		driveman:  driveman,
-		discdb:    discdb,
-		targets:   targets,
-		outdir:    outdir,
-		file:      file,
+		workflows:   workflows,
+		driveman:    driveman,
+		discdb:      discdb,
+		targets:     targets,
+		outdir:      outdir,
+		file:        file,
+		useMovieDir: useMovieDir,
 	}
 	return &m
 }

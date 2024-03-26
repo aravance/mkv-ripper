@@ -18,7 +18,8 @@ import (
 )
 
 type LocalIngester struct {
-	uri *url.URL
+	uri         *url.URL
+	useMovieDir bool
 }
 
 func readShasums(shafile string) (map[string]string, error) {
@@ -66,7 +67,12 @@ func (t *LocalIngester) Ingest(mkv model.MkvFile, name string, year string) erro
 	moviedir := fmt.Sprintf("%s (%s)", name, year)
 	mkvfile := fmt.Sprintf("%s (%s) - %s.mkv", name, year, mkv.Resolution)
 
-	newdir := path.Join(t.uri.Path, "Movies", moviedir)
+	var newdir string
+	if t.useMovieDir {
+		newdir = path.Join(t.uri.Path, "Movies", moviedir)
+	} else {
+		newdir = path.Join(t.uri.Path, "Movies")
+	}
 	newfile := path.Join(newdir, mkvfile)
 	ingestfile := path.Join(t.uri.Path, ".input", path.Base(mkv.Filename))
 	shafile := path.Join(t.uri.Path, "Movies.sha256")
@@ -120,8 +126,15 @@ func (t *LocalIngester) Ingest(mkv model.MkvFile, name string, year string) erro
 	if err != nil {
 		return err
 	}
-	shakey := path.Join(moviedir, mkvfile)
+
+	var shakey string
+	if t.useMovieDir {
+		shakey = path.Join(moviedir, mkvfile)
+	} else {
+		shakey = path.Join(mkvfile)
+	}
 	shasums[shakey] = shasum
+
 	err = writeShasums(shafile, shasums)
 	if err != nil {
 		return err

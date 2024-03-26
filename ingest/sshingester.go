@@ -12,7 +12,8 @@ import (
 )
 
 type SshIngester struct {
-	uri *url.URL
+	uri         *url.URL
+	useMovieDir bool
 }
 
 func (t *SshIngester) runCommand(cmd string) error {
@@ -40,7 +41,12 @@ func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error 
 	moviedir := fmt.Sprintf("%s (%s)", name, year)
 	mkvfile := fmt.Sprintf("%s (%s) - %s.mkv", name, year, mkv.Resolution)
 
-	newdir := path.Join(t.uri.Path, "Movies", moviedir)
+	var newdir string
+	if t.useMovieDir {
+		newdir = path.Join(t.uri.Path, "Movies", moviedir)
+	} else {
+		newdir = path.Join(t.uri.Path, "Movies")
+	}
 	newfile := path.Join(newdir, mkvfile)
 	ingestfile := path.Join(t.uri.Path, ".input", path.Base(mkv.Filename))
 	shafile := path.Join(t.uri.Path, "Movies.sha256")
@@ -86,7 +92,11 @@ func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error 
 	}
 
 	// add sha256sum to Movies.sha256
-	cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -u -o %s -m - %s", mkv.Shasum, escapeSsh(moviedir), escapeSsh(mkvfile), shafile, shafile)
+	if t.useMovieDir {
+		cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -u -o %s -m - %s", mkv.Shasum, escapeSsh(moviedir), escapeSsh(mkvfile), shafile, shafile)
+	} else {
+		cmd = fmt.Sprintf("echo '%s  %s' | sort -k2 -u -o %s -m - %s", mkv.Shasum, escapeSsh(mkvfile), shafile, shafile)
+	}
 	if err := t.runCommand(cmd); err != nil {
 		log.Println("failed to add shasum", newdir)
 		return err
