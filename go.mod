@@ -14,6 +14,19 @@ require (
 )
 
 require (
+	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cli/browser v1.3.0 // indirect
+	github.com/fatih/color v1.16.0 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/natefinch/atomic v1.0.1 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
+)
+
+require (
 	github.com/google/go-cmp v0.6.0
 	github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
@@ -28,4 +41,7 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 )
 
-tool github.com/a-h/templ
+tool (
+	github.com/a-h/templ
+	github.com/a-h/templ/cmd/templ
+)
