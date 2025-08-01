@@ -1,2 +1,2 @@
 [plugins]
-go = { id = "com.fussionlabs.gradle.go-plugin", version = "0.6.6" }
+go = { id = "com.fussionlabs.gradle.go-plugin", version = "0.7.0" }
