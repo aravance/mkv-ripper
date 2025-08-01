@@ -29,7 +29,7 @@ type Config struct {
 	Port        int
 	Omdb        *OmdbConfig
 	Targets     []TargetConfig
-	UseMovieDir *bool
+	UseMovieDir bool
 }
 
 func ParseConfigFile(file string) Config {
@@ -44,6 +44,7 @@ func ParseConfigFile(file string) Config {
 }
 
 func parseConfigBytes(config *Config, b []byte) {
+	config.UseMovieDir = false
 	toml.Unmarshal(b, config)
 	if config.Data == "" {
 		config.Data = DEFAULT_DATA_DIR
@@ -59,9 +60,5 @@ func parseConfigBytes(config *Config, b []byte) {
 	}
 	if config.Targets == nil {
 		config.Targets = make([]TargetConfig, 0)
-	}
-	if config.UseMovieDir == nil {
-		def := false
-		config.UseMovieDir = &def
 	}
 }

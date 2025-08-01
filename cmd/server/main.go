@@ -55,7 +55,7 @@ func main() {
 		handleDisc(discdb, wfman, driveman, omdbapi)
 	}
 	driveman := drive.NewUdevDriveManager(handle)
-	wfman = workflow.NewJsonWorkflowManager(driveman, discdb, targets, outdir, "workflows.json", *cfg.UseMovieDir)
+	wfman = workflow.NewJsonWorkflowManager(driveman, discdb, targets, outdir, "workflows.json", cfg.UseMovieDir)
 
 	driveman.Start()
 	defer driveman.Stop()
