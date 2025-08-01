@@ -101,7 +101,8 @@ func (t *udevListener) run() {
 	m.FilterAddMatchTag("systemd")
 	var ctx context.Context
 	ctx, t.cancel = context.WithCancel(context.Background())
-	devchan, err := m.DeviceChan(ctx)
+	// TODO setup the errchan
+	devchan, _, err := m.DeviceChan(ctx)
 	if err != nil {
 		log.Println("error opening udev channel:", err)
 		return

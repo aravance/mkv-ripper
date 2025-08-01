@@ -8,7 +8,7 @@ go {
     os = listOf("linux")
     arch = listOf("amd64")
     extraBuildArgs = listOf("-o", "mkv-ripper", "github.com/aravance/mkv-ripper/cmd/server")
-    goVersion = "1.22.0"
+    goVersion = "1.24.5"
 }
 
 val gobin = "${project.projectDir}/bin"
