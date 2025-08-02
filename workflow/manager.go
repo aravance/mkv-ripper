@@ -234,15 +234,18 @@ func (m *workflowManager) Save(w *model.Workflow) error {
 }
 
 func (m *workflowManager) Clean(w *model.Workflow) error {
-	// attempt to remove the rip dir, but ignore failures for non-empty
-	os.Remove(path.Join(m.outdir, w.DiscId))
-
 	err := os.Remove(w.File.Filename)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Println("error removing file", w.File.Filename)
 		return err
 	}
 	w.File = nil
+
+	dir := path.Join(m.outdir, w.DiscId)
+	err = os.Remove(dir)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Println("error removing directory", dir, "err:", err)
+	}
 	return m.Save(w)
 }
 
