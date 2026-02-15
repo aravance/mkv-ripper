@@ -130,6 +130,7 @@ type workflowManager struct {
 	outdir      string
 	file        string
 	useMovieDir bool
+	persistFn   func(*workflowManager, *model.Workflow) error
 }
 
 func newWorkflow(discId string, titleId int, label string, name string) *model.Workflow {
@@ -165,6 +166,7 @@ func NewJsonWorkflowManager(
 		outdir:      outdir,
 		file:        file,
 		useMovieDir: useMovieDir,
+		persistFn:   jsonPersist,
 	}
 	return &m
 }
@@ -224,6 +226,10 @@ func (m *workflowManager) Save(w *model.Workflow) error {
 	titleWfs := getOrCreate(m.workflows, w.DiscId)
 	titleWfs[w.TitleId] = w
 
+	return m.persistFn(m, w)
+}
+
+func jsonPersist(m *workflowManager, w *model.Workflow) error {
 	if bytes, err := json.Marshal(m.workflows); err != nil {
 		return err
 	} else if err := os.WriteFile(m.file, bytes, 0644); err != nil {

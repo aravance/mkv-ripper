@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ import (
 	"github.com/eefret/gomdb"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -48,14 +50,32 @@ func main() {
 		log.SetOutput(logfile)
 	}
 
+	dbPath := path.Join(cfg.Data, "mkv-ripper.db")
+	sqldb, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		log.Fatalln("failed to open sqlite database", err)
+	}
+	defer sqldb.Close()
+
 	var wfman workflow.WorkflowManager
 	omdbapi := gomdb.Init(cfg.Omdb.Apikey)
-	discdb := drive.NewJsonDiscDatabase("discs.json")
+	discdb, err := drive.NewSqliteDiscDatabase(sqldb)
+	if err != nil {
+		log.Fatalln("failed to initialize disc database", err)
+	}
+
+	migrateJsonDiscs(path.Join(cfg.Data, "discs.json"), discdb)
+
 	handle := func(driveman drive.DriveManager) {
 		handleDisc(discdb, wfman, driveman, omdbapi)
 	}
 	driveman := drive.NewUdevDriveManager(handle)
-	wfman = workflow.NewJsonWorkflowManager(driveman, discdb, targets, outdir, "workflows.json", cfg.UseMovieDir)
+	wfman, err = workflow.NewSqliteWorkflowManager(sqldb, driveman, discdb, targets, outdir, cfg.UseMovieDir)
+	if err != nil {
+		log.Fatalln("failed to initialize workflow manager", err)
+	}
+
+	migrateJsonWorkflows(path.Join(cfg.Data, "workflows.json"), wfman)
 
 	driveman.Start()
 	defer driveman.Stop()

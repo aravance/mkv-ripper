@@ -105,7 +105,7 @@ func (t *LocalIngester) Ingest(mkv model.MkvFile, name string, year string) erro
 		return err
 	}
 	if shasum != mkv.Shasum {
-		return fmt.Errorf("shasum does not match expected: " + mkv.Shasum + ", actual: " + shasum)
+		return fmt.Errorf("shasum does not match expected: %s, actual: %s", mkv.Shasum, shasum)
 	}
 
 	// create directory
