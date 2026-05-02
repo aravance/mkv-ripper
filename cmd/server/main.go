@@ -70,7 +70,7 @@ func main() {
 		handleDisc(discdb, wfman, driveman, omdbapi)
 	}
 	driveman := drive.NewUdevDriveManager(handle)
-	wfman, err = workflow.NewSqliteWorkflowManager(sqldb, driveman, discdb, targets, outdir, cfg.UseMovieDir)
+	wfman, err = workflow.NewSqliteWorkflowManager(sqldb, driveman, discdb, targets, outdir, cfg.UseMovieDir, cfg.Shafile)
 	if err != nil {
 		log.Fatalln("failed to initialize workflow manager", err)
 	}

@@ -103,7 +103,7 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 	m.Save(wf)
 
 	for _, target := range m.targets {
-		ingester, err := ingest.NewIngester(target, m.useMovieDir)
+		ingester, err := ingest.NewIngester(target, m.useMovieDir, m.shafile)
 		if err != nil {
 			log.Println("error finding ingester", err, "for target", target)
 			continue
@@ -153,6 +153,7 @@ func NewJsonWorkflowManager(
 	outdir string,
 	file string,
 	useMovieDir bool,
+	shafile string,
 ) WorkflowManager {
 	workflows, err := loadWorkflowJson(file)
 	if err != nil {
@@ -166,6 +167,7 @@ func NewJsonWorkflowManager(
 		outdir:      outdir,
 		file:        file,
 		useMovieDir: useMovieDir,
+		shafile:     shafile,
 		persistFn:   jsonPersist,
 	}
 	return &m

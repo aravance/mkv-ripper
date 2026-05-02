@@ -48,7 +48,7 @@ func newTestManager(t *testing.T) (WorkflowManager, *sql.DB) {
 	}
 	t.Cleanup(func() { db.Close() })
 
-	wfm, err := NewSqliteWorkflowManager(db, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, t.TempDir(), false)
+	wfm, err := NewSqliteWorkflowManager(db, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, t.TempDir(), false, "movies.sha256")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestSqliteWorkflowManager_FileRoundTripPersistence(t *testing.T) {
 
 	// Save with file
 	db1, _ := sql.Open("sqlite", dbPath)
-	wfm1, _ := NewSqliteWorkflowManager(db1, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir, false)
+	wfm1, _ := NewSqliteWorkflowManager(db1, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir, false, "movies.sha256")
 	file := &model.MkvFile{Filename: "/tmp/m.mkv", Shasum: "sha", Resolution: "4k"}
 	wfm1.Save(&model.Workflow{DiscId: "d1", TitleId: 0, Label: "L", OriginalName: "a", Status: model.StatusDone, File: file})
 	db1.Close()
@@ -169,7 +169,7 @@ func TestSqliteWorkflowManager_FileRoundTripPersistence(t *testing.T) {
 	// Reopen
 	db2, _ := sql.Open("sqlite", dbPath)
 	defer db2.Close()
-	wfm2, _ := NewSqliteWorkflowManager(db2, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir, false)
+	wfm2, _ := NewSqliteWorkflowManager(db2, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir, false, "movies.sha256")
 	got := wfm2.GetWorkflow("d1", 0)
 	if got == nil || got.File == nil {
 		t.Fatal("expected file after reopen")

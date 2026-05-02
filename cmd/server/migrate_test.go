@@ -49,7 +49,7 @@ func newTestDiscDB(t *testing.T, db *sql.DB) drive.DiscDatabase {
 
 func newTestWorkflowManager(t *testing.T, db *sql.DB, discdb drive.DiscDatabase) workflow.WorkflowManager {
 	t.Helper()
-	wfm, err := workflow.NewSqliteWorkflowManager(db, &testDriveManager{}, discdb, nil, t.TempDir(), false)
+	wfm, err := workflow.NewSqliteWorkflowManager(db, &testDriveManager{}, discdb, nil, t.TempDir(), false, "movies.sha256")
 	if err != nil {
 		t.Fatal(err)
 	}

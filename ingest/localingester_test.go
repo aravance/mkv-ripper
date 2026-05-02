@@ -43,7 +43,7 @@ func TestIngest_movieDir(t *testing.T) {
 	createMkvFile(t)
 	createShaFile(t, useMovieDir)
 
-	ingester := LocalIngester{&url.URL{Path: testdir}, useMovieDir}
+	ingester := LocalIngester{&url.URL{Path: testdir}, useMovieDir, "movies.sha256"}
 	if err := ingester.Ingest(mkvfile, name, year); err != nil {
 		t.Fatalf("ingester.Ingest(m, %s, %s) error: %v", name, year, err)
 	}
@@ -65,7 +65,7 @@ func TestIngest_noMovieDir(t *testing.T) {
 	createMkvFile(t)
 	createShaFile(t, useMovieDir)
 
-	ingester := LocalIngester{&url.URL{Path: testdir}, useMovieDir}
+	ingester := LocalIngester{&url.URL{Path: testdir}, useMovieDir, "movies.sha256"}
 	if err := ingester.Ingest(mkvfile, name, year); err != nil {
 		t.Fatalf("ingester.Ingest(m, %s, %s) error: %v", name, year, err)
 	}
@@ -86,7 +86,7 @@ func TestIngestNoShafile(t *testing.T) {
 	useMovieDir := false
 	createMkvFile(t)
 
-	ingester := LocalIngester{&url.URL{Path: testdir}, useMovieDir}
+	ingester := LocalIngester{&url.URL{Path: testdir}, useMovieDir, "movies.sha256"}
 	if err := ingester.Ingest(mkvfile, name, year); err != nil {
 		t.Fatalf("ingester.Ingest(m, %s, %s) error: %v", name, year, err)
 	}

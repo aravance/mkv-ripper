@@ -20,6 +20,7 @@ import (
 type LocalIngester struct {
 	uri         *url.URL
 	useMovieDir bool
+	shafile     string
 }
 
 func readShasums(shafile string) (map[string]string, error) {
@@ -75,7 +76,12 @@ func (t *LocalIngester) Ingest(mkv model.MkvFile, name string, year string) erro
 	}
 	newfile := path.Join(newdir, mkvfile)
 	ingestfile := path.Join(t.uri.Path, ".input", path.Base(mkv.Filename))
-	shafile := path.Join(t.uri.Path, "movies.sha256")
+	var shafile string
+	if path.IsAbs(t.shafile) {
+		shafile = t.shafile
+	} else {
+		shafile = path.Join(t.uri.Path, t.shafile)
+	}
 
 	err := os.MkdirAll(path.Join(t.uri.Path, ".input"), 0775)
 	if err != nil {

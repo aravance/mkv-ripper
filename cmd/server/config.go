@@ -11,6 +11,7 @@ const DEFAULT_DATA_DIR = "."
 const DEFAULT_LOG_DIR = "."
 const DEFAULT_RIP_DIR = "."
 const DEFAULT_PORT = 8080
+const DEFAULT_SHAFILE = "movies.sha256"
 
 type OmdbConfig struct {
 	Apikey string
@@ -27,6 +28,7 @@ type Config struct {
 	Log         string
 	Rip         string
 	Port        int
+	Shafile     string
 	Omdb        *OmdbConfig
 	Targets     []TargetConfig
 	UseMovieDir bool
@@ -57,6 +59,9 @@ func parseConfigBytes(config *Config, b []byte) {
 	}
 	if config.Port == 0 {
 		config.Port = DEFAULT_PORT
+	}
+	if config.Shafile == "" {
+		config.Shafile = DEFAULT_SHAFILE
 	}
 	if config.Targets == nil {
 		config.Targets = make([]TargetConfig, 0)

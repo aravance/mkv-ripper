@@ -14,6 +14,7 @@ func TestParseConfigBytesEmpty(t *testing.T) {
 		Log:         DEFAULT_LOG_DIR,
 		Rip:         DEFAULT_RIP_DIR,
 		Port:        DEFAULT_PORT,
+		Shafile:     DEFAULT_SHAFILE,
 		Omdb:        nil,
 		Targets:     []TargetConfig{},
 		UseMovieDir: false,
@@ -27,6 +28,7 @@ const tomlstr = `
 rip="/var/rip"
 port=1337
 usemoviedir=true
+shafile="checksums.sha256"
 
 [omdb]
 apikey="foobar"
@@ -44,11 +46,12 @@ func TestParseConfigBytesPartial(t *testing.T) {
 	var config Config
 	parseConfigBytes(&config, []byte(tomlstr))
 	expected := Config{
-		Data: DEFAULT_DATA_DIR,
-		Log:  DEFAULT_LOG_DIR,
-		Rip:  "/var/rip",
-		Port: 1337,
-		Omdb: &OmdbConfig{"foobar"},
+		Data:    DEFAULT_DATA_DIR,
+		Log:     DEFAULT_LOG_DIR,
+		Rip:     "/var/rip",
+		Port:    1337,
+		Shafile: "checksums.sha256",
+		Omdb:    &OmdbConfig{"foobar"},
 		Targets: []TargetConfig{
 			{Path: "/home"},
 			{Scheme: "ssh", Host: "localhost", Path: "/var"},

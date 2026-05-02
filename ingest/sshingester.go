@@ -14,6 +14,7 @@ import (
 type SshIngester struct {
 	uri         *url.URL
 	useMovieDir bool
+	shafile     string
 }
 
 func (t *SshIngester) runCommand(cmd string) error {
@@ -49,7 +50,12 @@ func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error 
 	}
 	newfile := path.Join(newdir, mkvfile)
 	ingestfile := path.Join(t.uri.Path, ".input", path.Base(mkv.Filename))
-	shafile := path.Join(t.uri.Path, "movies.sha256")
+	var shafile string
+	if path.IsAbs(t.shafile) {
+		shafile = t.shafile
+	} else {
+		shafile = path.Join(t.uri.Path, t.shafile)
+	}
 
 	out := fmt.Sprintf("%s:%s", t.uri.Hostname(), path.Join(t.uri.Path, ".input"))
 	log.Println("starting scp", mkv.Filename, out)

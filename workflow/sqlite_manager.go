@@ -17,6 +17,7 @@ func NewSqliteWorkflowManager(
 	targets []*url.URL,
 	outdir string,
 	useMovieDir bool,
+	shafile string,
 ) (WorkflowManager, error) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS workflows (
 		disc_id TEXT NOT NULL,
@@ -92,6 +93,7 @@ func NewSqliteWorkflowManager(
 		targets:     targets,
 		outdir:      outdir,
 		useMovieDir: useMovieDir,
+		shafile:     shafile,
 		persistFn:   persistFn,
 	}, nil
 }
