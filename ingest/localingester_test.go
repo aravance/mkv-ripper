@@ -15,14 +15,14 @@ const testdir = "localingester_test"
 const shasum = "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2"
 const mkvfileContent = "foobar"
 const movieDirShafileContent = `
-5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990)/foo (1990) - 480p.mkv
-97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989)/bar (1989) - 4k.mkv
-1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000)/baz (2000) - 4k.mkv
+5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990)/foo (1990) [480p].mkv
+97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989)/bar (1989) [4k].mkv
+1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000)/baz (2000) [4k].mkv
 `
 const shafileContent = `
-5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990) - 480p.mkv
-97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989) - 4k.mkv
-1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000) - 4k.mkv
+5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990) [480p].mkv
+97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989) [4k].mkv
+1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000) [4k].mkv
 `
 
 const name = "bar"
@@ -50,10 +50,10 @@ func TestIngest_movieDir(t *testing.T) {
 
 	statMkvFile(t, useMovieDir)
 	compareShaFile(t, `
-c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2  bar (1989)/bar (1989) - 1080p.mkv
-97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989)/bar (1989) - 4k.mkv
-1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000)/baz (2000) - 4k.mkv
-5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990)/foo (1990) - 480p.mkv
+c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2  bar (1989)/bar (1989) [1080p].mkv
+97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989)/bar (1989) [4k].mkv
+1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000)/baz (2000) [4k].mkv
+5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990)/foo (1990) [480p].mkv
 `)
 }
 
@@ -72,10 +72,10 @@ func TestIngest_noMovieDir(t *testing.T) {
 
 	statMkvFile(t, useMovieDir)
 	compareShaFile(t, `
-c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2  bar (1989) - 1080p.mkv
-97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989) - 4k.mkv
-1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000) - 4k.mkv
-5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990) - 480p.mkv
+c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2  bar (1989) [1080p].mkv
+97df3588b5a3f24babc3851b372f0ba71a9dcdded43b14b9d06961bfc1707d9d  bar (1989) [4k].mkv
+1b8e84ccf80aae39e1ca16393920c801a8fb78c5ae8ce5e6a5d636baa3d9386d  baz (2000) [4k].mkv
+5ecf8d2cc410094e8b82dd0bc178a57f3aa1e80916689beb00fe56148b1b1256  foo (1990) [480p].mkv
 `)
 }
 
@@ -92,7 +92,7 @@ func TestIngestNoShafile(t *testing.T) {
 	}
 
 	statMkvFile(t, useMovieDir)
-	compareShaFile(t, `c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2  bar (1989) - 1080p.mkv`)
+	compareShaFile(t, `c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2  bar (1989) [1080p].mkv`)
 }
 
 func createTestDir(t *testing.T) {
@@ -108,7 +108,7 @@ func createMkvFile(t *testing.T) {
 }
 
 func createShaFile(t *testing.T, useMovieDir bool) string {
-	shafile := fmt.Sprintf("%s/Movies.sha256", testdir)
+	shafile := fmt.Sprintf("%s/movies.sha256", testdir)
 	var content string
 	if useMovieDir {
 		content = movieDirShafileContent
@@ -124,9 +124,9 @@ func createShaFile(t *testing.T, useMovieDir bool) string {
 func statMkvFile(t *testing.T, useMovieDir bool) {
 	var outfile string
 	if useMovieDir {
-		outfile = fmt.Sprintf("%s/Movies/%s (%s)/%s (%s) - %s.mkv", testdir, name, year, name, year, res)
+		outfile = fmt.Sprintf("%s/%s (%s)/%s (%s) [%s].mkv", testdir, name, year, name, year, res)
 	} else {
-		outfile = fmt.Sprintf("%s/Movies/%s (%s) - %s.mkv", testdir, name, year, res)
+		outfile = fmt.Sprintf("%s/%s (%s) [%s].mkv", testdir, name, year, res)
 	}
 	if _, err := os.Stat(outfile); err != nil {
 		t.Fatalf("os.Stat(%s) failed: %v", outfile, err)
@@ -134,7 +134,7 @@ func statMkvFile(t *testing.T, useMovieDir bool) {
 }
 
 func compareShaFile(t *testing.T, expected string) {
-	shafile := fmt.Sprintf("%s/Movies.sha256", testdir)
+	shafile := fmt.Sprintf("%s/movies.sha256", testdir)
 	bytes, err := os.ReadFile(shafile)
 	if err != nil {
 		t.Fatalf("os.Readfile(%s) failed: %v", shafile, err)

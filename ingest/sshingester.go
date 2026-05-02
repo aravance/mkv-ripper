@@ -39,17 +39,17 @@ func escapeSsh(s string) string {
 
 func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error {
 	moviedir := fmt.Sprintf("%s (%s)", name, year)
-	mkvfile := fmt.Sprintf("%s (%s) - %s.mkv", name, year, mkv.Resolution)
+	mkvfile := fmt.Sprintf("%s (%s) [%s].mkv", name, year, mkv.Resolution)
 
 	var newdir string
 	if t.useMovieDir {
-		newdir = path.Join(t.uri.Path, "Movies", moviedir)
+		newdir = path.Join(t.uri.Path, moviedir)
 	} else {
-		newdir = path.Join(t.uri.Path, "Movies")
+		newdir = path.Join(t.uri.Path)
 	}
 	newfile := path.Join(newdir, mkvfile)
 	ingestfile := path.Join(t.uri.Path, ".input", path.Base(mkv.Filename))
-	shafile := path.Join(t.uri.Path, "Movies.sha256")
+	shafile := path.Join(t.uri.Path, "movies.sha256")
 
 	out := fmt.Sprintf("%s:%s", t.uri.Hostname(), path.Join(t.uri.Path, ".input"))
 	log.Println("starting scp", mkv.Filename, out)
@@ -91,7 +91,7 @@ func (t *SshIngester) Ingest(mkv model.MkvFile, name string, year string) error 
 		return err
 	}
 
-	// add sha256sum to Movies.sha256
+	// add sha256sum to movies.sha256
 	if t.useMovieDir {
 		cmd = fmt.Sprintf("echo '%s  %s/%s' | sort -k2 -u -o %s -m - %s", mkv.Shasum, escapeSsh(moviedir), escapeSsh(mkvfile), shafile, shafile)
 	} else {
