@@ -130,6 +130,7 @@ type workflowManager struct {
 	outdir      string
 	file        string
 	useMovieDir bool
+	shafile     string
 	persistFn   func(*workflowManager, *model.Workflow) error
 }
 
