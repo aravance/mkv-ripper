@@ -152,7 +152,7 @@ func handleDisc(
 	var found bool
 	var err error
 	info, found = discdb.GetDiscInfo(disc.Uuid)
-	if !found {
+	if !found || info.VolumeName == "" {
 		info, err = driveman.GetDiscInfo()
 		if err != nil {
 			log.Println("error getting disc info:", disc, "err:", err)
