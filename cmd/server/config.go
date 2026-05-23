@@ -18,20 +18,20 @@ type OmdbConfig struct {
 }
 
 type TargetConfig struct {
-	Scheme string
-	Host   string
-	Path   string
+	Scheme      string
+	Host        string
+	Path        string
+	Shafile     string
+	UseMovieDir bool
 }
 
 type Config struct {
-	Data        string
-	Log         string
-	Rip         string
-	Port        int
-	Shafile     string
-	Omdb        *OmdbConfig
-	Targets     []TargetConfig
-	UseMovieDir bool
+	Data    string
+	Log     string
+	Rip     string
+	Port    int
+	Omdb    *OmdbConfig
+	Targets []TargetConfig
 }
 
 func ParseConfigFile(file string) Config {
@@ -46,7 +46,6 @@ func ParseConfigFile(file string) Config {
 }
 
 func parseConfigBytes(config *Config, b []byte) {
-	config.UseMovieDir = false
 	toml.Unmarshal(b, config)
 	if config.Data == "" {
 		config.Data = DEFAULT_DATA_DIR
@@ -60,10 +59,12 @@ func parseConfigBytes(config *Config, b []byte) {
 	if config.Port == 0 {
 		config.Port = DEFAULT_PORT
 	}
-	if config.Shafile == "" {
-		config.Shafile = DEFAULT_SHAFILE
-	}
 	if config.Targets == nil {
 		config.Targets = make([]TargetConfig, 0)
+	}
+	for i := range config.Targets {
+		if config.Targets[i].Shafile == "" {
+			config.Targets[i].Shafile = DEFAULT_SHAFILE
+		}
 	}
 }

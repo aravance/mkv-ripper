@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
-	"net/url"
 
 	"github.com/aravance/mkv-ripper/drive"
+	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
 )
 
@@ -14,10 +14,8 @@ func NewSqliteWorkflowManager(
 	db *sql.DB,
 	driveman drive.DriveManager,
 	discdb drive.DiscDatabase,
-	targets []*url.URL,
+	targets []ingest.Target,
 	outdir string,
-	useMovieDir bool,
-	shafile string,
 ) (WorkflowManager, error) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS workflows (
 		disc_id TEXT NOT NULL,
@@ -87,14 +85,12 @@ func NewSqliteWorkflowManager(
 	}
 
 	return &workflowManager{
-		workflows:   workflows,
-		driveman:    driveman,
-		discdb:      discdb,
-		targets:     targets,
-		outdir:      outdir,
-		useMovieDir: useMovieDir,
-		shafile:     shafile,
-		persistFn:   persistFn,
+		workflows: workflows,
+		driveman:  driveman,
+		discdb:    discdb,
+		targets:   targets,
+		outdir:    outdir,
+		persistFn: persistFn,
 	}, nil
 }
 

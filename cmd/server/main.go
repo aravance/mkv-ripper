@@ -18,6 +18,7 @@ import (
 	"github.com/aravance/go-makemkv"
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/handler"
+	"github.com/aravance/mkv-ripper/ingest"
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
 	"github.com/aravance/mkv-ripper/workflow"
@@ -34,13 +35,17 @@ func main() {
 	}
 
 	outdir := cfg.Rip
-	targets := make([]*url.URL, len(cfg.Targets))
+	targets := make([]ingest.Target, len(cfg.Targets))
 	for i, t := range cfg.Targets {
 		log.Println("target:", t)
-		targets[i] = &url.URL{
-			Scheme: t.Scheme,
-			Host:   t.Host,
-			Path:   t.Path,
+		targets[i] = ingest.Target{
+			URL: &url.URL{
+				Scheme: t.Scheme,
+				Host:   t.Host,
+				Path:   t.Path,
+			},
+			Shafile:     t.Shafile,
+			UseMovieDir: t.UseMovieDir,
 		}
 	}
 
@@ -71,7 +76,7 @@ func main() {
 		handleDisc(discdb, wfman, driveman, omdbapi)
 	}
 	driveman := drive.NewUdevDriveManager(handle)
-	wfman, err = workflow.NewSqliteWorkflowManager(sqldb, driveman, discdb, targets, outdir, cfg.UseMovieDir, cfg.Shafile)
+	wfman, err = workflow.NewSqliteWorkflowManager(sqldb, driveman, discdb, targets, outdir)
 	if err != nil {
 		log.Fatalln("failed to initialize workflow manager", err)
 	}

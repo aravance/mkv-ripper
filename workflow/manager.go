@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"path"
 
@@ -103,7 +102,7 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 	m.Save(wf)
 
 	for _, target := range m.targets {
-		ingester, err := ingest.NewIngester(target, m.useMovieDir, m.shafile)
+		ingester, err := ingest.NewIngester(target)
 		if err != nil {
 			log.Println("error finding ingester", err, "for target", target)
 			continue
@@ -123,15 +122,13 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 }
 
 type workflowManager struct {
-	workflows   map[string]map[int]*model.Workflow
-	driveman    drive.DriveManager
-	discdb      drive.DiscDatabase
-	targets     []*url.URL
-	outdir      string
-	file        string
-	useMovieDir bool
-	shafile     string
-	persistFn   func(*workflowManager, *model.Workflow) error
+	workflows map[string]map[int]*model.Workflow
+	driveman  drive.DriveManager
+	discdb    drive.DiscDatabase
+	targets   []ingest.Target
+	outdir    string
+	file      string
+	persistFn func(*workflowManager, *model.Workflow) error
 }
 
 func newWorkflow(discId string, titleId int, label string, name string) *model.Workflow {
@@ -150,26 +147,22 @@ func newWorkflow(discId string, titleId int, label string, name string) *model.W
 func NewJsonWorkflowManager(
 	driveman drive.DriveManager,
 	discdb drive.DiscDatabase,
-	targets []*url.URL,
+	targets []ingest.Target,
 	outdir string,
 	file string,
-	useMovieDir bool,
-	shafile string,
 ) WorkflowManager {
 	workflows, err := loadWorkflowJson(file)
 	if err != nil {
 		workflows = make(map[string]map[int]*model.Workflow)
 	}
 	m := workflowManager{
-		workflows:   workflows,
-		driveman:    driveman,
-		discdb:      discdb,
-		targets:     targets,
-		outdir:      outdir,
-		file:        file,
-		useMovieDir: useMovieDir,
-		shafile:     shafile,
-		persistFn:   jsonPersist,
+		workflows: workflows,
+		driveman:  driveman,
+		discdb:    discdb,
+		targets:   targets,
+		outdir:    outdir,
+		file:      file,
+		persistFn: jsonPersist,
 	}
 	return &m
 }

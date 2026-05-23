@@ -10,14 +10,12 @@ func TestParseConfigBytesEmpty(t *testing.T) {
 	var config Config
 	parseConfigBytes(&config, []byte{})
 	expected := Config{
-		Data:        DEFAULT_DATA_DIR,
-		Log:         DEFAULT_LOG_DIR,
-		Rip:         DEFAULT_RIP_DIR,
-		Port:        DEFAULT_PORT,
-		Shafile:     DEFAULT_SHAFILE,
-		Omdb:        nil,
-		Targets:     []TargetConfig{},
-		UseMovieDir: false,
+		Data:    DEFAULT_DATA_DIR,
+		Log:     DEFAULT_LOG_DIR,
+		Rip:     DEFAULT_RIP_DIR,
+		Port:    DEFAULT_PORT,
+		Omdb:    nil,
+		Targets: []TargetConfig{},
 	}
 	if !cmp.Equal(config, expected) {
 		t.Fatalf("parseConfigBytes(&config, []byte{}) = %v, expected: %v", config, expected)
@@ -27,14 +25,14 @@ func TestParseConfigBytesEmpty(t *testing.T) {
 const tomlstr = `
 rip="/var/rip"
 port=1337
-usemoviedir=true
-shafile="checksums.sha256"
 
 [omdb]
 apikey="foobar"
 
 [[targets]]
 path="/home"
+shafile="checksums.sha256"
+usemoviedir=true
 
 [[targets]]
 scheme="ssh"
@@ -46,17 +44,15 @@ func TestParseConfigBytesPartial(t *testing.T) {
 	var config Config
 	parseConfigBytes(&config, []byte(tomlstr))
 	expected := Config{
-		Data:    DEFAULT_DATA_DIR,
-		Log:     DEFAULT_LOG_DIR,
-		Rip:     "/var/rip",
-		Port:    1337,
-		Shafile: "checksums.sha256",
-		Omdb:    &OmdbConfig{"foobar"},
+		Data: DEFAULT_DATA_DIR,
+		Log:  DEFAULT_LOG_DIR,
+		Rip:  "/var/rip",
+		Port: 1337,
+		Omdb: &OmdbConfig{"foobar"},
 		Targets: []TargetConfig{
-			{Path: "/home"},
-			{Scheme: "ssh", Host: "localhost", Path: "/var"},
+			{Path: "/home", Shafile: "checksums.sha256", UseMovieDir: true},
+			{Scheme: "ssh", Host: "localhost", Path: "/var", Shafile: DEFAULT_SHAFILE},
 		},
-		UseMovieDir: true,
 	}
 
 	if !cmp.Equal(config, expected) {
