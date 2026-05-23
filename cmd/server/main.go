@@ -36,6 +36,7 @@ func main() {
 	outdir := cfg.Rip
 	targets := make([]*url.URL, len(cfg.Targets))
 	for i, t := range cfg.Targets {
+		log.Printf("target: %s", t)
 		targets[i] = &url.URL{
 			Scheme: t.Scheme,
 			Host:   t.Host,
