@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/ingest"
@@ -27,15 +28,24 @@ func NewSqliteWorkflowManager(
 		name TEXT,
 		year TEXT,
 		file_json TEXT,
+		resolution TEXT,
+		updated_at TEXT,
 		PRIMARY KEY(disc_id, title_id)
 	)`)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := addColumnIfMissing(db, "workflows", "resolution", "TEXT"); err != nil {
+		return nil, err
+	}
+	if err := addColumnIfMissing(db, "workflows", "updated_at", "TEXT"); err != nil {
+		return nil, err
+	}
+
 	workflows := make(map[string]map[int]*model.Workflow)
 
-	rows, err := db.Query("SELECT disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json FROM workflows")
+	rows, err := db.Query("SELECT disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json, resolution, updated_at FROM workflows")
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +54,9 @@ func NewSqliteWorkflowManager(
 	for rows.Next() {
 		var discId, label, originalName, status string
 		var titleId int
-		var imdbId, name, year, fileJson sql.NullString
+		var imdbId, name, year, fileJson, resolution, updatedAt sql.NullString
 
-		if err := rows.Scan(&discId, &titleId, &label, &originalName, &status, &imdbId, &name, &year, &fileJson); err != nil {
+		if err := rows.Scan(&discId, &titleId, &label, &originalName, &status, &imdbId, &name, &year, &fileJson, &resolution, &updatedAt); err != nil {
 			log.Println("error scanning workflow row:", err)
 			continue
 		}
@@ -73,6 +83,14 @@ func NewSqliteWorkflowManager(
 				log.Println("error unmarshaling file_json:", err)
 			} else {
 				wf.File = &f
+			}
+		}
+		if resolution.Valid {
+			wf.Resolution = &resolution.String
+		}
+		if updatedAt.Valid {
+			if t, err := time.Parse(time.RFC3339Nano, updatedAt.String); err == nil {
+				wf.UpdatedAt = t
 			}
 		}
 
@@ -105,9 +123,11 @@ func sqlitePersist(db *sql.DB, w *model.Workflow) error {
 		fileJson = &s
 	}
 
+	updatedAt := w.UpdatedAt.Format(time.RFC3339Nano)
+
 	_, err := db.Exec(
-		`INSERT INTO workflows (disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO workflows (disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json, resolution, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(disc_id, title_id) DO UPDATE SET
 			label = excluded.label,
 			original_name = excluded.original_name,
@@ -115,9 +135,41 @@ func sqlitePersist(db *sql.DB, w *model.Workflow) error {
 			imdb_id = excluded.imdb_id,
 			name = excluded.name,
 			year = excluded.year,
-			file_json = excluded.file_json`,
+			file_json = excluded.file_json,
+			resolution = excluded.resolution,
+			updated_at = excluded.updated_at`,
 		w.DiscId, w.TitleId, w.Label, w.OriginalName, string(w.Status),
-		w.ImdbId, w.Name, w.Year, fileJson,
+		w.ImdbId, w.Name, w.Year, fileJson, w.Resolution, updatedAt,
 	)
+	return err
+}
+
+// addColumnIfMissing adds a column to an existing sqlite table if it isn't
+// already present, so databases created before the column was introduced
+// get migrated in place on startup.
+func addColumnIfMissing(db *sql.DB, table, column, coltype string) error {
+	rows, err := db.Query("PRAGMA table_info(" + table + ")")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == column {
+			return nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	_, err = db.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + coltype)
 	return err
 }

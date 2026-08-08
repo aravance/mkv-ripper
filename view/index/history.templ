@@ -1,0 +1,18 @@
+package indexview
+
+import (
+	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/view/layout"
+)
+
+templ History(movies []*model.MovieGroup) {
+	@layout.Base("history") {
+		<a href="/">&laquo; back</a>
+		<h4>History</h4>
+		if len(movies) == 0 {
+			<div>No rips yet</div>
+		} else {
+			@movieList(movies)
+		}
+	}
+}

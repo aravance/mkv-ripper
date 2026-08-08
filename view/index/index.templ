@@ -7,7 +7,7 @@ import (
 	"github.com/aravance/mkv-ripper/view/layout"
 )
 
-templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*model.Workflow, done []*model.Workflow) {
+templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*model.Workflow, recent []*model.MovieGroup, hasMore bool) {
 	@layout.Base("") {
 		<a href="/drive">Drive: { string(drivestat) }</a>
 		<h4>Active</h4>
@@ -45,21 +45,34 @@ templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*mod
 				}
 			</ul>
 		}
-		if len(done) > 0 {
-			<h4>Done</h4>
-			<ul>
-				for _, w := range done {
-					<li>
-						<a href={ templ.SafeURL(util.WorkflowUrl(w.DiscId, w.TitleId)) }>
-							if w.Name != nil && *w.Name != "" {
-								{ *w.Name }
-							} else {
-								{ w.Label }
-							}
-						</a>
-					</li>
-				}
-			</ul>
+		if len(recent) > 0 {
+			<h4>Recent</h4>
+			@movieList(recent)
+			if hasMore {
+				<a href="/history">See all history</a>
+			}
 		}
 	}
+}
+
+templ movieList(movies []*model.MovieGroup) {
+	<ul>
+		for _, mv := range movies {
+			<li>
+				<a href={ templ.SafeURL(util.WorkflowUrl(mv.Workflows[0].DiscId, mv.Workflows[0].TitleId)) }>
+					{ mv.Name }
+				</a>
+				for _, wf := range mv.Workflows {
+					if wf.Resolution != nil {
+						<a
+							href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId)) }
+							class="badge text-bg-secondary text-decoration-none"
+						>
+							{ *wf.Resolution }
+						</a>
+					}
+				}
+			</li>
+		}
+	</ul>
 }

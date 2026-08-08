@@ -15,13 +15,13 @@ import (
 // Mock DriveManager
 type mockDriveManager struct{}
 
-func (m *mockDriveManager) Eject() error                        { return nil }
+func (m *mockDriveManager) Eject() error                            { return nil }
 func (m *mockDriveManager) GetDiscInfo() (*makemkv.DiscInfo, error) { return nil, nil }
-func (m *mockDriveManager) GetDisc() *drive.Disc                { return nil }
-func (m *mockDriveManager) HasDisc() bool                       { return false }
-func (m *mockDriveManager) Start() error                        { return nil }
-func (m *mockDriveManager) Stop() error                         { return nil }
-func (m *mockDriveManager) Status() drive.DriveStatus            { return drive.StatusEmpty }
+func (m *mockDriveManager) GetDisc() *drive.Disc                    { return nil }
+func (m *mockDriveManager) HasDisc() bool                           { return false }
+func (m *mockDriveManager) Start() error                            { return nil }
+func (m *mockDriveManager) Stop() error                             { return nil }
+func (m *mockDriveManager) Status() drive.DriveStatus               { return drive.StatusEmpty }
 func (m *mockDriveManager) RipFile(_ *makemkv.TitleInfo, _ string, _ chan makemkv.Status) (*model.MkvFile, error) {
 	return nil, nil
 }
@@ -179,6 +179,93 @@ func TestSqliteWorkflowManager_FileRoundTripPersistence(t *testing.T) {
 	}
 }
 
+func TestSqliteWorkflowManager_ResolutionAndUpdatedAtRoundTrip(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := tmpDir + "/test.db"
+
+	db1, _ := sql.Open("sqlite", dbPath)
+	wfm1, _ := NewSqliteWorkflowManager(db1, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir)
+	wf := &model.Workflow{DiscId: "d1", TitleId: 0, Label: "L", OriginalName: "a", Status: model.StatusDone, Resolution: strPtr("4k")}
+	if err := wfm1.Save(wf); err != nil {
+		t.Fatal(err)
+	}
+	if wf.UpdatedAt.IsZero() {
+		t.Fatal("expected Save to set UpdatedAt")
+	}
+	wantUpdatedAt := wf.UpdatedAt
+	db1.Close()
+
+	// Reopen from a fresh manager instance to verify SQLite persistence
+	db2, _ := sql.Open("sqlite", dbPath)
+	defer db2.Close()
+	wfm2, _ := NewSqliteWorkflowManager(db2, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir)
+	got := wfm2.GetWorkflow("d1", 0)
+	if got == nil {
+		t.Fatal("expected workflow after reopen")
+	}
+	if got.Resolution == nil || *got.Resolution != "4k" {
+		t.Fatalf("expected resolution 4k, got %v", got.Resolution)
+	}
+	if !got.UpdatedAt.Equal(wantUpdatedAt) {
+		t.Fatalf("expected UpdatedAt %v, got %v", wantUpdatedAt, got.UpdatedAt)
+	}
+}
+
+func TestSqliteWorkflowManager_MigratesLegacySchema(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := tmpDir + "/legacy.db"
+
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Simulate a database created before the resolution/updated_at columns existed.
+	_, err = db.Exec(`CREATE TABLE workflows (
+		disc_id TEXT NOT NULL,
+		title_id INTEGER NOT NULL,
+		label TEXT,
+		original_name TEXT,
+		status TEXT,
+		imdb_id TEXT,
+		name TEXT,
+		year TEXT,
+		file_json TEXT,
+		PRIMARY KEY(disc_id, title_id)
+	)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO workflows (disc_id, title_id, label, original_name, status, imdb_id, name, year)
+		VALUES ('d1', 0, 'L', 'a', 'Done', 'tt1', 'Movie', '2020')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wfm, err := NewSqliteWorkflowManager(db, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir)
+	if err != nil {
+		t.Fatal("expected legacy schema to migrate cleanly:", err)
+	}
+
+	got := wfm.GetWorkflow("d1", 0)
+	if got == nil {
+		t.Fatal("expected pre-existing row to load")
+	}
+	if got.Resolution != nil {
+		t.Fatal("expected nil resolution for migrated row")
+	}
+
+	// New saves should populate the migrated columns.
+	got.Resolution = strPtr("1080p")
+	if err := wfm.Save(got); err != nil {
+		t.Fatal(err)
+	}
+	if got.UpdatedAt.IsZero() {
+		t.Fatal("expected UpdatedAt to be set after save on migrated row")
+	}
+}
+
 func TestSqliteWorkflowManager_Clean(t *testing.T) {
 	wfm, _ := newTestManager(t)
 	tmpDir := t.TempDir()
@@ -191,7 +278,8 @@ func TestSqliteWorkflowManager_Clean(t *testing.T) {
 
 	wf := &model.Workflow{
 		DiscId: "d1", TitleId: 0, Label: "L", OriginalName: "a", Status: model.StatusDone,
-		File: &model.MkvFile{Filename: tmpFile, Shasum: "abc", Resolution: "1080p"},
+		File:       &model.MkvFile{Filename: tmpFile, Shasum: "abc", Resolution: "1080p"},
+		Resolution: strPtr("1080p"),
 	}
 	wfm.Save(wf)
 
@@ -201,10 +289,16 @@ func TestSqliteWorkflowManager_Clean(t *testing.T) {
 	if wf.File != nil {
 		t.Fatal("expected File to be nil after Clean")
 	}
+	if wf.Resolution == nil || *wf.Resolution != "1080p" {
+		t.Fatal("expected Resolution to survive Clean")
+	}
 
 	got := wfm.GetWorkflow("d1", 0)
 	if got.File != nil {
 		t.Fatal("expected persisted File to be nil after Clean")
+	}
+	if got.Resolution == nil || *got.Resolution != "1080p" {
+		t.Fatal("expected persisted Resolution to survive Clean")
 	}
 }
 

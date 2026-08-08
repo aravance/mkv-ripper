@@ -1,6 +1,10 @@
 package model
 
-import "github.com/aravance/go-makemkv"
+import (
+	"time"
+
+	"github.com/aravance/go-makemkv"
+)
 
 type WorkflowStatus string
 
@@ -25,10 +29,22 @@ type Workflow struct {
 	Label        string
 	OriginalName string
 	Status       WorkflowStatus
-	ImdbId       *string  `json:",omitempty"`
-	Name         *string  `json:",omitempty"`
-	Year         *string  `json:",omitempty"`
-	File         *MkvFile `json:",omitempty"`
+	ImdbId       *string   `json:",omitempty"`
+	Name         *string   `json:",omitempty"`
+	Year         *string   `json:",omitempty"`
+	File         *MkvFile  `json:",omitempty"`
+	Resolution   *string   `json:",omitempty"`
+	UpdatedAt    time.Time `json:",omitempty"`
 
 	MkvStatus *makemkv.Status `json:"-"`
+}
+
+// MovieGroup groups workflows for the same movie (e.g. separate 4k and 1080p
+// disc rips) into a single history entry with one badge per resolution.
+type MovieGroup struct {
+	Name      string
+	Year      string
+	ImdbId    *string
+	UpdatedAt time.Time
+	Workflows []*Workflow
 }

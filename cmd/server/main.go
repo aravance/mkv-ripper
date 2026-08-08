@@ -115,6 +115,7 @@ func main() {
 	omdbHandler := handler.NewOmdbHandler(omdbapi)
 
 	server.GET("/", indexHandler.GetIndex)
+	server.GET("/history", indexHandler.GetHistory)
 	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
 	server.GET("/disc/:discId/title/:titleId", workflowHandler.GetWorkflow)

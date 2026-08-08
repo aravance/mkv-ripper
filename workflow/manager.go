@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 
 	"github.com/aravance/go-makemkv"
 	"github.com/aravance/mkv-ripper/drive"
@@ -72,6 +73,7 @@ func (m *workflowManager) Start(wf *model.Workflow) error {
 	}
 
 	wf.File = f
+	wf.Resolution = &f.Resolution
 	wf.Status = model.StatusPending
 	m.Save(wf)
 
@@ -221,6 +223,7 @@ func (m *workflowManager) GetAllWorkflows() []*model.Workflow {
 func (m *workflowManager) Save(w *model.Workflow) error {
 	titleWfs := getOrCreate(m.workflows, w.DiscId)
 	titleWfs[w.TitleId] = w
+	w.UpdatedAt = time.Now()
 
 	return m.persistFn(m, w)
 }
