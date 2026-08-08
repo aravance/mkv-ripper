@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/aravance/mkv-ripper/drive"
@@ -16,6 +17,7 @@ import (
 )
 
 const recentMovieLimit = 5
+const historyPageSize = 10
 
 type IndexHandler struct {
 	workflowManager workflow.WorkflowManager
@@ -40,17 +42,58 @@ func (i IndexHandler) GetIndex(c echo.Context) error {
 		recent = recent[:recentMovieLimit]
 	}
 	i.posters.fill(recent)
+	i.persistResolvedImdbIds(recent)
 
 	drstatus := i.driveManager.Status()
 	return render(c, indexview.Show(drstatus, active, errored, recent, len(movies) > len(recent)))
 }
 
 func (i IndexHandler) GetHistory(c echo.Context) error {
+	q := strings.TrimSpace(c.QueryParam("q"))
+	page, _ := strconv.Atoi(c.QueryParam("page"))
+	if page < 1 {
+		page = 1
+	}
+
 	_, _, done := i.splitWorkflows()
 	movies := groupMovies(done)
+	if q != "" {
+		movies = slices.DeleteFunc(movies, func(mv *model.MovieGroup) bool {
+			return !strings.Contains(strings.ToLower(mv.Name), strings.ToLower(q))
+		})
+	}
 	slices.SortFunc(movies, compareMovieGroups)
-	i.posters.fill(movies)
-	return render(c, indexview.History(movies))
+
+	totalPages := max(1, (len(movies)+historyPageSize-1)/historyPageSize)
+	page = min(page, totalPages)
+
+	start := min((page-1)*historyPageSize, len(movies))
+	end := min(start+historyPageSize, len(movies))
+	pageMovies := movies[start:end]
+
+	i.posters.fill(pageMovies)
+	i.persistResolvedImdbIds(pageMovies)
+	return render(c, indexview.History(pageMovies, q, page, totalPages))
+}
+
+// persistResolvedImdbIds saves IMDB ids the poster cache resolved by title
+// (see posterCache.resolveByTitle) back onto their workflows, so movies
+// ripped before their IMDB id was recorded only need resolving once.
+func (i IndexHandler) persistResolvedImdbIds(movies []*model.MovieGroup) {
+	for _, mv := range movies {
+		if mv.ImdbId == nil {
+			continue
+		}
+		for _, wf := range mv.Workflows {
+			if wf.ImdbId != nil {
+				continue
+			}
+			wf.ImdbId = mv.ImdbId
+			if err := i.workflowManager.Save(wf); err != nil {
+				log.Println("error persisting resolved imdb id for", wf.DiscId, wf.TitleId, "err:", err)
+			}
+		}
+	}
 }
 
 func (i IndexHandler) GetMovie(c echo.Context) error {

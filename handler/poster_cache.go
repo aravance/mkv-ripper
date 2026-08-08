@@ -56,9 +56,35 @@ func (c *posterCache) fill(movies []*model.MovieGroup) {
 		go func(mv *model.MovieGroup) {
 			defer wg.Done()
 			defer func() { <-sem }()
+			if mv.ImdbId == nil || *mv.ImdbId == "" {
+				c.resolveByTitle(mv)
+				return
+			}
 			mv.Poster = c.get(mv.ImdbId)
 		}(mv)
 	}
 
 	wg.Wait()
+}
+
+// resolveByTitle looks up a group's IMDB id by title/year for workflows
+// ripped before their IMDB id was recorded (e.g. older library imports), so
+// their history entry still links to the movie page and shows a poster.
+func (c *posterCache) resolveByTitle(mv *model.MovieGroup) {
+	if mv.Name == "" {
+		return
+	}
+
+	movie, err := c.omdbapi.MovieByTitle(&gomdb.QueryData{Title: mv.Name, Year: mv.Year})
+	if err != nil || movie.ImdbID == "" {
+		return
+	}
+	mv.ImdbId = &movie.ImdbID
+	if movie.Poster != "N/A" {
+		mv.Poster = movie.Poster
+	}
+
+	c.mu.Lock()
+	c.byID[movie.ImdbID] = mv.Poster
+	c.mu.Unlock()
 }

@@ -1,18 +1,115 @@
 package indexview
 
 import (
+	"fmt"
+	"net/url"
+	"strconv"
+
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/view/layout"
 )
 
-templ History(movies []*model.MovieGroup) {
+templ History(movies []*model.MovieGroup, query string, page, totalPages int) {
 	@layout.Base("history") {
 		<a href="/">&laquo; back</a>
 		<h4>History</h4>
+		<div class="input-group mb-3">
+			<span class="input-group-text px-4" id="search-addon">
+				<div class="position-absolute top-50 translate-middle">
+					<i class="fa-solid fa-magnifying-glass htmx-reverse-indicator"></i>
+				</div>
+				<div class="position-absolute top-50 translate-middle">
+					<span
+						class="spinner-border spinner-border-sm htmx-indicator"
+						id="spinner"
+						role="status"
+						aria-hidden="true"
+					></span>
+				</div>
+			</span>
+			<div class="form-floating">
+				<input
+					hx-get="/history"
+					hx-trigger="keyup changed delay:500ms"
+					hx-target="#history-results"
+					hx-select="#history-results"
+					hx-swap="outerHTML"
+					hx-push-url="true"
+					hx-indicator="#search-addon"
+					class="form-control"
+					type="text"
+					id="q"
+					name="q"
+					aria-label="Search"
+					aria-describedby="search-addon"
+					value={ query }
+				/>
+				<label for="q">Search movies</label>
+			</div>
+		</div>
+		@historyResults(movies, query, page, totalPages)
+	}
+}
+
+templ historyResults(movies []*model.MovieGroup, query string, page, totalPages int) {
+	<div id="history-results">
 		if len(movies) == 0 {
-			<div>No rips yet</div>
+			if query != "" {
+				<div>No movies match "{ query }"</div>
+			} else {
+				<div>No rips yet</div>
+			}
 		} else {
 			@movieList(movies)
+			if totalPages > 1 {
+				@historyPagination(query, page, totalPages)
+			}
 		}
+	</div>
+}
+
+templ historyPagination(query string, page, totalPages int) {
+	<div class="d-flex justify-content-between align-items-center mt-3">
+		if page > 1 {
+			<a
+				href={ templ.SafeURL(historyUrl(query, page-1)) }
+				class="btn btn-secondary btn-sm"
+				hx-get={ historyUrl(query, page-1) }
+				hx-target="#history-results"
+				hx-select="#history-results"
+				hx-swap="outerHTML"
+				hx-push-url="true"
+			>&laquo; Prev</a>
+		} else {
+			<span></span>
+		}
+		<span>{ fmt.Sprintf("Page %d of %d", page, totalPages) }</span>
+		if page < totalPages {
+			<a
+				href={ templ.SafeURL(historyUrl(query, page+1)) }
+				class="btn btn-secondary btn-sm"
+				hx-get={ historyUrl(query, page+1) }
+				hx-target="#history-results"
+				hx-select="#history-results"
+				hx-swap="outerHTML"
+				hx-push-url="true"
+			>Next &raquo;</a>
+		} else {
+			<span></span>
+		}
+	</div>
+}
+
+func historyUrl(query string, page int) string {
+	v := url.Values{}
+	if query != "" {
+		v.Set("q", query)
 	}
+	if page > 1 {
+		v.Set("page", strconv.Itoa(page))
+	}
+	if len(v) == 0 {
+		return "/history"
+	}
+	return "/history?" + v.Encode()
 }
