@@ -1,0 +1,35 @@
+package movieview
+
+import (
+	"github.com/aravance/mkv-ripper/model"
+	"github.com/aravance/mkv-ripper/util"
+	"github.com/aravance/mkv-ripper/view/layout"
+	"github.com/eefret/gomdb"
+)
+
+templ Page(m *gomdb.MovieResult, group *model.MovieGroup) {
+	@layout.Base(group.Name) {
+		<main>
+			<div class="mb-2">
+				if m != nil {
+					@Movie(m)
+				} else {
+					<span class="fw-medium">{ group.Name } ({ group.Year })</span>
+				}
+			</div>
+			<h4>Workflows</h4>
+			<div>
+				for _, wf := range group.Workflows {
+					if wf.Resolution != nil {
+						<a
+							href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId)) }
+							class="badge text-bg-secondary text-decoration-none me-1"
+						>
+							{ *wf.Resolution }
+						</a>
+					}
+				}
+			</div>
+		</main>
+	}
+}

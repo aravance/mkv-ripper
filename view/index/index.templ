@@ -56,23 +56,47 @@ templ Show(drivestat drive.DriveStatus, active []*model.Workflow, errored []*mod
 }
 
 templ movieList(movies []*model.MovieGroup) {
-	<ul>
+	<div class="list-group">
 		for _, mv := range movies {
-			<li>
-				<a href={ templ.SafeURL(util.WorkflowUrl(mv.Workflows[0].DiscId, mv.Workflows[0].TitleId)) }>
-					{ mv.Name }
-				</a>
-				for _, wf := range mv.Workflows {
-					if wf.Resolution != nil {
-						<a
-							href={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId)) }
-							class="badge text-bg-secondary text-decoration-none"
-						>
-							{ *wf.Resolution }
-						</a>
-					}
-				}
-			</li>
+			@movieCard(mv)
 		}
-	</ul>
+	</div>
+}
+
+func primaryMovieUrl(mv *model.MovieGroup) string {
+	if mv.ImdbId != nil && *mv.ImdbId != "" {
+		return "/movie/" + *mv.ImdbId
+	}
+	return util.WorkflowUrl(mv.Workflows[0].DiscId, mv.Workflows[0].TitleId)
+}
+
+templ movieCard(mv *model.MovieGroup) {
+	<a href={ templ.SafeURL(primaryMovieUrl(mv)) } class="list-group-item list-group-item-action p-0 overflow-hidden">
+		<div class="d-flex align-items-center overflow-hidden" style="height: 110px;">
+			<div class="w-25 d-flex align-items-center">
+				if mv.Poster != "" {
+					<img src={ mv.Poster } alt="movie poster" class="w-100"/>
+				} else {
+					<i class="fa-solid fa-film fa-2xl ps-2 mx-auto"></i>
+				}
+			</div>
+			<div class="d-flex w-75 h-100 align-items-center ps-3">
+				<div class="d-flex flex-column w-100">
+					<span class="fw-medium">{ mv.Name }</span>
+					<span class="fw-light" style="font-size: small;">
+						<ul class="list-inline m-0">
+							<li class="list-inline-item m-0">{ mv.Year }</li>
+							for _, wf := range mv.Workflows {
+								if wf.Resolution != nil {
+									<li class="list-inline-item m-0">
+										<span class="badge text-bg-secondary">{ *wf.Resolution }</span>
+									</li>
+								}
+							}
+						</ul>
+					</span>
+				</div>
+			</div>
+		</div>
+	</a>
 }

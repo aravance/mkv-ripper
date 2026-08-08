@@ -1,13 +1,17 @@
 package handler
 
 import (
+	"log"
+	"net/http"
 	"slices"
 	"strings"
 
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/model"
 	indexview "github.com/aravance/mkv-ripper/view/index"
+	movieview "github.com/aravance/mkv-ripper/view/movie"
 	"github.com/aravance/mkv-ripper/workflow"
+	"github.com/eefret/gomdb"
 	"github.com/labstack/echo/v4"
 )
 
@@ -16,10 +20,12 @@ const recentMovieLimit = 5
 type IndexHandler struct {
 	workflowManager workflow.WorkflowManager
 	driveManager    drive.DriveManager
+	omdbapi         *gomdb.OmdbApi
+	posters         *posterCache
 }
 
-func NewIndexHandler(driveManager drive.DriveManager, workflowManager workflow.WorkflowManager) IndexHandler {
-	return IndexHandler{workflowManager, driveManager}
+func NewIndexHandler(driveManager drive.DriveManager, workflowManager workflow.WorkflowManager, omdbapi *gomdb.OmdbApi) IndexHandler {
+	return IndexHandler{workflowManager, driveManager, omdbapi, newPosterCache(omdbapi)}
 }
 
 func (i IndexHandler) GetIndex(c echo.Context) error {
@@ -33,6 +39,7 @@ func (i IndexHandler) GetIndex(c echo.Context) error {
 	if len(recent) > recentMovieLimit {
 		recent = recent[:recentMovieLimit]
 	}
+	i.posters.fill(recent)
 
 	drstatus := i.driveManager.Status()
 	return render(c, indexview.Show(drstatus, active, errored, recent, len(movies) > len(recent)))
@@ -42,7 +49,34 @@ func (i IndexHandler) GetHistory(c echo.Context) error {
 	_, _, done := i.splitWorkflows()
 	movies := groupMovies(done)
 	slices.SortFunc(movies, compareMovieGroups)
+	i.posters.fill(movies)
 	return render(c, indexview.History(movies))
+}
+
+func (i IndexHandler) GetMovie(c echo.Context) error {
+	imdbId := c.Param("imdbId")
+	if imdbId == "" {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	_, _, done := i.splitWorkflows()
+	done = slices.DeleteFunc(done, func(wf *model.Workflow) bool {
+		return wf.ImdbId == nil || *wf.ImdbId != imdbId
+	})
+	if len(done) == 0 {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	groups := groupMovies(done)
+	group := groups[0]
+
+	movie, err := i.omdbapi.MovieByImdbID(imdbId)
+	if err != nil {
+		log.Println("error fetching movie", imdbId, "err:", err)
+		movie = nil
+	}
+
+	return render(c, movieview.Page(movie, group))
 }
 
 // splitWorkflows buckets all workflows by status, keeping only the

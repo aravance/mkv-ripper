@@ -109,13 +109,14 @@ func main() {
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 
-	indexHandler := handler.NewIndexHandler(driveman, wfman)
+	indexHandler := handler.NewIndexHandler(driveman, wfman, omdbapi)
 	driveHandler := handler.NewDriveHandler(discdb, driveman, wfman, omdbapi)
 	workflowHandler := handler.NewWorkflowHandler(wfman, driveman, discdb, omdbapi)
 	omdbHandler := handler.NewOmdbHandler(omdbapi)
 
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/history", indexHandler.GetHistory)
+	server.GET("/movie/:imdbId", indexHandler.GetMovie)
 	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
 	server.GET("/disc/:discId/title/:titleId", workflowHandler.GetWorkflow)

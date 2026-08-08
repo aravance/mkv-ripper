@@ -45,6 +45,7 @@ type MovieGroup struct {
 	Name      string
 	Year      string
 	ImdbId    *string
+	Poster    string
 	UpdatedAt time.Time
 	Workflows []*Workflow
 }
