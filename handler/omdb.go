@@ -27,8 +27,10 @@ func (h OmdbHandler) Search(c echo.Context) error {
 	if q == "" {
 		return render(c, omdbview.Search(make([]*gomdb.MovieResult, 0)))
 	}
+	year := strings.TrimSpace(c.QueryParam("year"))
 	qd := &gomdb.QueryData{
 		Title:      q,
+		Year:       year,
 		SearchType: "movie",
 	}
 	res, err := h.omdbapi.Search(qd)

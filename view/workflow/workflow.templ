@@ -110,6 +110,7 @@ templ Edit(wf *model.Workflow) {
 						hx-trigger="load,keyup changed delay:500ms"
 						hx-target="#results"
 						hx-indicator="#search-addon"
+						hx-include="#year"
 						class="form-control"
 						type="text"
 						id="q"
@@ -119,6 +120,35 @@ templ Edit(wf *model.Workflow) {
 						value={ wf.OriginalName }
 					/>
 					<label for="q">Movie title</label>
+				</div>
+				<button
+					class="btn btn-outline-secondary"
+					type="button"
+					data-bs-toggle="collapse"
+					data-bs-target="#year-collapse"
+					aria-expanded="false"
+					aria-controls="year-collapse"
+					title="Filter by year"
+				>
+					<i class="fa-regular fa-calendar"></i>
+				</button>
+			</div>
+			<div class="collapse mb-3" id="year-collapse">
+				<div class="form-floating">
+					<input
+						hx-get="/omdb/search?limit=4"
+						hx-trigger="keyup changed delay:500ms"
+						hx-target="#results"
+						hx-indicator="#search-addon"
+						hx-include="#q"
+						class="form-control"
+						type="number"
+						id="year"
+						name="year"
+						aria-label="Year"
+						placeholder="Year"
+					/>
+					<label for="year">Year</label>
 				</div>
 			</div>
 			<form id="results" action={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId)) } method="post"></form>
