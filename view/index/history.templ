@@ -42,9 +42,10 @@ templ History(movies []*model.MovieGroup, query string, page, totalPages int) {
 					name="q"
 					aria-label="Search"
 					aria-describedby="search-addon"
+					placeholder="Movie title"
 					value={ query }
 				/>
-				<label for="q">Search movies</label>
+				<label for="q">Movie title</label>
 			</div>
 		</div>
 		@historyResults(movies, query, page, totalPages)
