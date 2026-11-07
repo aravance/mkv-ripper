@@ -1,10 +1,84 @@
 package collectionview
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/aravance/mkv-ripper/library"
 )
+
+// Picker is everything the collections form shows.
+type Picker struct {
+	Action string
+	// Topical collections are always shown; Series ones are tucked away.
+	Topical  []string
+	Series   []string
+	Selected []string
+	// Current is what's actually saved: the movie's live membership, or the
+	// collections stored on the workflow. Save is only enabled when the
+	// form differs from it (a pre-checked suggestion counts as a change).
+	Current []string
+	// Suggested are the existing collections for the movie's series.
+	Suggested []string
+	// NewSeries is the name of the movie's series when no collection exists
+	// for it yet, offered as a one-click new collection.
+	NewSeries string
+	// Live means Selected is the movie's actual membership on the server, so
+	// unchecking may remove it from collections.
+	Live bool
+	Msg  string
+}
+
+func (p Picker) selected(name string) bool {
+	return library.ContainsCollection(p.Selected, name)
+}
+
+func (p Picker) suggested(name string) bool {
+	return library.ContainsCollection(p.Suggested, name)
+}
+
+// HasChanges reports whether Selected differs from Current.
+func (p Picker) HasChanges() bool {
+	sel := library.NormalizeCollections(p.Selected)
+	cur := library.NormalizeCollections(p.Current)
+	if len(sel) != len(cur) {
+		return true
+	}
+	for _, s := range sel {
+		if !library.ContainsCollection(cur, s) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p Picker) currentJSON() string {
+	b, _ := json.Marshal(library.NormalizeCollections(p.Current))
+	return string(b)
+}
+
+// visibleSeries are the series collections shown alongside the topical
+// ones: anything checked or suggested, so they're never hidden.
+func (p Picker) visibleSeries() []string {
+	out := make([]string, 0)
+	for _, s := range p.Series {
+		if p.selected(s) || p.suggested(s) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// hiddenSeries are the rest, tucked into the collapsed section.
+func (p Picker) hiddenSeries() []string {
+	out := make([]string, 0)
+	for _, s := range p.Series {
+		if !p.selected(s) && !p.suggested(s) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
 
 // Loader is a placeholder that swaps itself for the collections Form once
 // it loads, so rendering the page doesn't wait on the media server.
@@ -15,27 +89,20 @@ templ Loader(url string) {
 	</div>
 }
 
-templ Form(action string, options []string, selected []string, live bool, msg string) {
-	<form hx-post={ action } hx-swap="outerHTML" class="mt-3">
+templ Form(p Picker) {
+	<form
+		hx-post={ p.Action }
+		hx-swap="outerHTML"
+		class="mt-3"
+		data-current={ p.currentJSON() }
+		onchange="updateCollectionSave(this)"
+		oninput="updateCollectionSave(this)"
+	>
 		<h4>Collections</h4>
-		if live {
+		if p.Live {
 			<input type="hidden" name="live" value="true"/>
 		}
-		for i, name := range options {
-			<div class="form-check">
-				<input
-					class="form-check-input"
-					type="checkbox"
-					name="collection"
-					value={ name }
-					id={ fmt.Sprintf("collection-%d", i) }
-					checked?={ library.ContainsCollection(selected, name) }
-				/>
-				<label class="form-check-label" for={ fmt.Sprintf("collection-%d", i) }>{ name }</label>
-			</div>
-		}
-		<div class="new-collections d-flex flex-wrap gap-1 mt-2" aria-live="polite"></div>
-		<div class="form-floating mt-2">
+		<div class="form-floating">
 			<input
 				type="text"
 				class="form-control"
@@ -50,15 +117,71 @@ templ Form(action string, options []string, selected []string, live bool, msg st
 			<label for="new-collection">New collection</label>
 		</div>
 		<div id="new-collection-help" class="form-text">Press Enter to add it to the list.</div>
-		<button type="submit" class="btn btn-primary w-100 mt-3 position-relative">
+		if p.NewSeries != "" {
+			<div class="mt-2">
+				<div class="small text-uppercase text-body-secondary fw-semibold mb-1">Suggested series</div>
+				<button
+					type="button"
+					class="btn btn-sm btn-outline-info rounded-pill"
+					data-name={ p.NewSeries }
+					onclick="addSuggestedPill(this)"
+					title="This movie's series has no collection yet"
+				>
+					<i class="fa-solid fa-plus"></i>
+					{ p.NewSeries }
+				</button>
+			</div>
+		}
+		<div class="new-collections d-flex flex-wrap gap-1 mt-2" aria-live="polite"></div>
+		<div class="mt-2">
+			for i, name := range p.Topical {
+				@checkbox(fmt.Sprintf("collection-%d", i), name, p.selected(name), p.suggested(name))
+			}
+			for i, name := range p.visibleSeries() {
+				@checkbox(fmt.Sprintf("collection-series-%d", i), name, p.selected(name), p.suggested(name))
+			}
+		</div>
+		if hidden := p.hiddenSeries(); len(hidden) > 0 {
+			<details class="mt-2">
+				<summary class="text-body-secondary">
+					More series
+					<span class="badge text-bg-secondary ms-1">{ fmt.Sprint(len(hidden)) }</span>
+				</summary>
+				<div class="mt-1">
+					for i, name := range hidden {
+						@checkbox(fmt.Sprintf("collection-more-%d", i), name, false, false)
+					}
+				</div>
+			</details>
+		}
+		<button type="submit" class="btn btn-primary w-100 mt-3 position-relative" disabled?={ !p.HasChanges() }>
 			Save collections
 			<span class="spinner-border spinner-border-sm htmx-indicator position-absolute top-50 end-0 translate-middle-y me-3" role="status" aria-hidden="true"></span>
 		</button>
-		if msg != "" {
-			<div class="form-text">{ msg }</div>
+		if p.Msg != "" {
+			<div class="form-text">{ p.Msg }</div>
 		}
 		@pillScript()
 	</form>
+}
+
+templ checkbox(id string, name string, checked bool, suggested bool) {
+	<div class="form-check">
+		<input
+			class="form-check-input"
+			type="checkbox"
+			name="collection"
+			value={ name }
+			id={ id }
+			checked?={ checked }
+		/>
+		<label class="form-check-label" for={ id }>
+			{ name }
+			if suggested {
+				<span class="badge rounded-pill text-bg-info ms-1">suggested</span>
+			}
+		</label>
+	</div>
 }
 
 // pillScript turns typed collection names into removable pills. Each pill
@@ -66,42 +189,71 @@ templ Form(action string, options []string, selected []string, live bool, msg st
 // checked boxes. Text still in the box on save is sent as "new", which the
 // server also accepts, so nothing typed is lost (and it works without JS).
 templ pillScript() {
+	<style>
+	.new-collections:empty {
+		display: none !important;
+	}
+	</style>
 	<script>
 	function collectionKeydown(e) {
 		if (e.isComposing || (e.key !== "Enter" && e.key !== ",")) return;
 		e.preventDefault();
-		addCollectionPills(e.target);
+		const form = e.target.closest("form");
+		for (const name of e.target.value.split(",")) addCollectionPill(form, name);
+		e.target.value = "";
+		updateCollectionSave(form);
 	}
 
-	function addCollectionPills(input) {
-		const form = input.closest("form");
-		const pills = form.querySelector(".new-collections");
-		for (const raw of input.value.split(",")) {
-			const name = raw.trim();
-			if (!name) continue;
-			const existing = Array.from(form.querySelectorAll("input[name=collection]"))
-				.find((i) => i.value.toLowerCase() === name.toLowerCase());
-			if (existing) {
-				if (existing.type === "checkbox") existing.checked = true;
-				continue;
-			}
+	function addSuggestedPill(button) {
+		const form = button.closest("form");
+		addCollectionPill(form, button.dataset.name);
+		button.parentElement.remove();
+		updateCollectionSave(form);
+	}
 
-			const pill = document.createElement("span");
-			pill.className = "badge rounded-pill text-bg-primary d-inline-flex align-items-center fs-6 fw-normal py-2 ps-3 pe-2";
-			const hidden = document.createElement("input");
-			hidden.type = "hidden";
-			hidden.name = "collection";
-			hidden.value = name;
-			const remove = document.createElement("button");
-			remove.type = "button";
-			remove.className = "btn-close btn-close-white ms-2";
-			remove.style.fontSize = "0.6em";
-			remove.setAttribute("aria-label", "Remove " + name);
-			remove.addEventListener("click", () => pill.remove());
-			pill.append(document.createTextNode(name), hidden, remove);
-			pills.append(pill);
+	// Enables Save only when the chosen collections differ from what's saved
+	// (data-current), or there's typed text that would add a new one.
+	function updateCollectionSave(form) {
+		const lower = (s) => s.trim().toLowerCase();
+		const current = new Set(JSON.parse(form.dataset.current || "[]").map(lower));
+		const chosen = new Set(Array.from(form.querySelectorAll("input[name=collection]"))
+			.filter((i) => i.type === "hidden" || i.checked)
+			.map((i) => lower(i.value)));
+		const typed = form.querySelector("#new-collection").value.split(",").some((s) => s.trim());
+		const changed = typed || chosen.size !== current.size || [...chosen].some((c) => !current.has(c));
+		form.querySelector("button[type=submit]").disabled = !changed;
+	}
+
+	function addCollectionPill(form, raw) {
+		const name = raw.trim();
+		if (!name) return;
+		const existing = Array.from(form.querySelectorAll("input[name=collection]"))
+			.find((i) => i.value.toLowerCase() === name.toLowerCase());
+		if (existing) {
+			if (existing.type === "checkbox") {
+				existing.checked = true;
+				existing.closest("details")?.setAttribute("open", "");
+			}
+			return;
 		}
-		input.value = "";
+
+		const pill = document.createElement("span");
+		pill.className = "badge rounded-pill text-bg-primary d-inline-flex align-items-center fs-6 fw-normal py-2 ps-3 pe-2";
+		const hidden = document.createElement("input");
+		hidden.type = "hidden";
+		hidden.name = "collection";
+		hidden.value = name;
+		const remove = document.createElement("button");
+		remove.type = "button";
+		remove.className = "btn-close btn-close-white ms-2";
+		remove.style.fontSize = "0.6em";
+		remove.setAttribute("aria-label", "Remove " + name);
+		remove.addEventListener("click", () => {
+			pill.remove();
+			updateCollectionSave(form);
+		});
+		pill.append(document.createTextNode(name), hidden, remove);
+		form.querySelector(".new-collections").append(pill);
 	}
 	</script>
 }

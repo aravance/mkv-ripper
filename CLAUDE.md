@@ -40,6 +40,9 @@ make clean   # removes the binary and generated *_templ.go files
 - `[[libraries]]` — optional media servers to manage collections on after ingest, each with
   `type` (only `jellyfin` so far), `url`, `token` (API key), and optional `user` (defaults to
   the first admin). Without any, the collections UI renders nothing.
+- `[tmdb] apikey` — optional TMDb v3 API key or v4 read access token (`eyJ...`, sent as a
+  Bearer header). Lets the collections picker identify a movie's release series before it's
+  ripped; without it, series are only known once Jellyfin has the movie.
 
 State lives in a single sqlite database (`<data>/mkv-ripper.db`, driver: `modernc.org/sqlite`,
 pure Go, no cgo). Older deployments may still have legacy `discs.json`/`workflows.json` files;

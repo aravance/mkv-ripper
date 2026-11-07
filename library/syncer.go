@@ -16,6 +16,10 @@ import (
 type Syncer struct {
 	libs []Library
 
+	// Lookup optionally identifies a movie's series before it's in any
+	// library (TMDb). Without it, series are only known after import.
+	Lookup SeriesLookup
+
 	// PollInterval is how often AfterIngest looks for a newly ingested movie.
 	PollInterval time.Duration
 	// RescanInterval is how often AfterIngest re-triggers a library scan
@@ -36,20 +40,95 @@ func (s *Syncer) Enabled() bool {
 	return s != nil && len(s.libs) > 0
 }
 
-// AllCollections returns the sorted, case-insensitively de-duplicated union
-// of collection names across all libraries.
-func (s *Syncer) AllCollections(ctx context.Context) ([]string, error) {
-	all := make([]string, 0)
+// AllCollections returns the union of collections across all libraries,
+// de-duplicated case-insensitively and sorted by name. A collection counts
+// as a series if any library says it is.
+func (s *Syncer) AllCollections(ctx context.Context) ([]Collection, error) {
+	all := make([]Collection, 0)
 	var errs []error
 	for _, lib := range s.libs {
-		names, err := lib.Collections(ctx)
+		cols, err := lib.Collections(ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", lib.Name(), err))
 			continue
 		}
-		all = append(all, names...)
+		for _, c := range cols {
+			c.Name = strings.TrimSpace(c.Name)
+			if c.Name == "" {
+				continue
+			}
+			i := slices.IndexFunc(all, func(a Collection) bool { return strings.EqualFold(a.Name, c.Name) })
+			if i < 0 {
+				all = append(all, c)
+			} else {
+				all[i].Series = all[i].Series || c.Series
+				if all[i].SeriesId == "" {
+					all[i].SeriesId = c.SeriesId
+				}
+			}
+		}
 	}
-	return SortCollections(NormalizeCollections(all)), errors.Join(errs...)
+	slices.SortFunc(all, func(a, b Collection) int {
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+	})
+	return all, errors.Join(errs...)
+}
+
+// Suggestion is the series a movie belongs to and the existing collections
+// for it.
+type Suggestion struct {
+	Series Series
+	// Matches are the existing collections for the series. Usually one;
+	// several when a series has e.g. regular and extended edition sets, and
+	// none when nobody has made a collection for it yet.
+	Matches []string
+}
+
+// SuggestSeries identifies the movie's series and which of all (from
+// AllCollections) belong to it. Returns nil if the movie isn't in a series.
+func (s *Syncer) SuggestSeries(ctx context.Context, q MovieQuery, all []Collection) (*Suggestion, error) {
+	series, err := s.identifySeries(ctx, q)
+	if series == nil {
+		return nil, err
+	}
+	sugg := &Suggestion{Series: *series}
+	for _, c := range all {
+		if c.SeriesId != "" && c.SeriesId == series.TmdbId {
+			sugg.Matches = append(sugg.Matches, c.Name)
+		}
+	}
+	return sugg, nil
+}
+
+// identifySeries asks the Lookup (TMDb) first, falling back to a library
+// that already has the movie.
+func (s *Syncer) identifySeries(ctx context.Context, q MovieQuery) (*Series, error) {
+	var errs []error
+	if s.Lookup != nil && q.ImdbId != "" {
+		series, err := s.Lookup.SeriesForMovie(ctx, q.ImdbId)
+		if err == nil {
+			return series, nil
+		}
+		errs = append(errs, err)
+	}
+	for _, lib := range s.libs {
+		id, err := lib.FindMovie(ctx, q)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		} else if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", lib.Name(), err))
+			continue
+		}
+		seriesId, err := lib.MovieSeriesId(ctx, id)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", lib.Name(), err))
+			continue
+		}
+		if seriesId != "" {
+			return &Series{TmdbId: seriesId}, nil
+		}
+	}
+	return nil, errors.Join(errs...)
 }
 
 // Membership returns the collections the movie currently belongs to across
@@ -129,11 +208,16 @@ func applyToMovie(ctx context.Context, lib Library, movieId string, want []strin
 	return errors.Join(errs...)
 }
 
-// AfterIngest triggers a scan in every library and, if want is non-empty,
-// waits for the movie to appear and adds it to those collections. It returns
-// when every library is done or ctx expires, so give ctx a deadline.
+// AfterIngest triggers a scan in every library, waits for the movie to
+// appear, and adds it to the collections in want. A nil want means nobody
+// chose collections, so the movie is added to its series' collection instead
+// (only when exactly one exists; it never creates one). An empty, non-nil
+// want means none were chosen on purpose. It returns when every library is
+// done or ctx expires, so give ctx a deadline.
 func (s *Syncer) AfterIngest(ctx context.Context, q MovieQuery, want []string) error {
-	want = NormalizeCollections(want)
+	if want != nil {
+		want = NormalizeCollections(want)
+	}
 	var wg sync.WaitGroup
 	errs := make([]error, len(s.libs))
 	for i, lib := range s.libs {
@@ -153,7 +237,7 @@ func (s *Syncer) afterIngest(ctx context.Context, lib Library, q MovieQuery, wan
 	if err := lib.Scan(ctx); err != nil {
 		log.Println(lib.Name(), "error triggering scan:", err)
 	}
-	if len(want) == 0 {
+	if want != nil && len(want) == 0 {
 		return nil
 	}
 
@@ -161,6 +245,11 @@ func (s *Syncer) afterIngest(ctx context.Context, lib Library, q MovieQuery, wan
 	for {
 		id, err := lib.FindMovie(ctx, q)
 		if err == nil {
+			if want == nil {
+				if want, err = s.autoSeries(ctx, lib, q, id); err != nil {
+					return err
+				}
+			}
 			return applyToMovie(ctx, lib, id, want, false)
 		}
 		if !errors.Is(err, ErrNotFound) {
@@ -180,6 +269,41 @@ func (s *Syncer) afterIngest(ctx context.Context, lib Library, q MovieQuery, wan
 		case <-time.After(s.PollInterval):
 		}
 	}
+}
+
+// autoSeries picks the collection to add a newly ingested movie to when none
+// were chosen: its series' collection, if exactly one exists in lib.
+func (s *Syncer) autoSeries(ctx context.Context, lib Library, q MovieQuery, movieId string) ([]string, error) {
+	seriesId, err := lib.MovieSeriesId(ctx, movieId)
+	if err != nil {
+		return nil, err
+	}
+	if seriesId == "" && s.Lookup != nil {
+		if series, err := s.Lookup.SeriesForMovie(ctx, q.ImdbId); err != nil {
+			log.Println("error looking up series for", q, err)
+		} else if series != nil {
+			seriesId = series.TmdbId
+		}
+	}
+	if seriesId == "" {
+		return []string{}, nil
+	}
+
+	cols, err := lib.Collections(ctx)
+	if err != nil {
+		return nil, err
+	}
+	matches := make([]string, 0)
+	for _, c := range cols {
+		if c.SeriesId == seriesId {
+			matches = append(matches, c.Name)
+		}
+	}
+	if len(matches) != 1 {
+		log.Println(lib.Name(), "not auto-adding", q, "to series", seriesId, "- matching collections:", matches)
+		return []string{}, nil
+	}
+	return matches, nil
 }
 
 // diffCollections returns which names in want are missing from current, and

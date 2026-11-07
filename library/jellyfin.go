@@ -172,10 +172,8 @@ func (j *Jellyfin) FindMovie(ctx context.Context, q MovieQuery) (string, error) 
 func matchMovie(items []jfItem, q MovieQuery) string {
 	for _, it := range items {
 		if q.ImdbId != "" {
-			for k, v := range it.ProviderIds {
-				if strings.EqualFold(k, "imdb") && strings.EqualFold(v, q.ImdbId) {
-					return it.Id
-				}
+			if strings.EqualFold(providerId(it, "imdb"), q.ImdbId) {
+				return it.Id
 			}
 			continue
 		}
@@ -190,6 +188,7 @@ func (j *Jellyfin) boxSets(ctx context.Context) ([]jfItem, error) {
 	return j.items(ctx, url.Values{
 		"Recursive":        {"true"},
 		"IncludeItemTypes": {"BoxSet"},
+		"Fields":           {"ProviderIds"},
 		"EnableImages":     {"false"},
 		"EnableUserData":   {"false"},
 	})
@@ -208,16 +207,44 @@ func (j *Jellyfin) findBoxSet(ctx context.Context, name string) (*jfItem, error)
 	return nil, nil
 }
 
-func (j *Jellyfin) Collections(ctx context.Context) ([]string, error) {
+func (j *Jellyfin) Collections(ctx context.Context) ([]Collection, error) {
 	sets, err := j.boxSets(ctx)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, len(sets))
+	cols := make([]Collection, len(sets))
 	for i, s := range sets {
-		names[i] = s.Name
+		seriesId := providerId(s, "tmdb")
+		cols[i] = Collection{Name: s.Name, Series: seriesId != "", SeriesId: seriesId}
 	}
-	return names, nil
+	return cols, nil
+}
+
+func providerId(it jfItem, provider string) string {
+	for k, v := range it.ProviderIds {
+		if strings.EqualFold(k, provider) {
+			return v
+		}
+	}
+	return ""
+}
+
+func (j *Jellyfin) MovieSeriesId(ctx context.Context, movieId string) (string, error) {
+	items, err := j.items(ctx, url.Values{
+		"Ids":            {movieId},
+		"Fields":         {"ProviderIds"},
+		"EnableImages":   {"false"},
+		"EnableUserData": {"false"},
+	})
+	if err != nil {
+		return "", err
+	}
+	for _, it := range items {
+		if it.Id == movieId {
+			return providerId(it, "tmdbcollection"), nil
+		}
+	}
+	return "", ErrNotFound
 }
 
 func (j *Jellyfin) MovieCollections(ctx context.Context, movieId string) ([]string, error) {

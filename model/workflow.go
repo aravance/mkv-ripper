@@ -35,7 +35,9 @@ type Workflow struct {
 	File         *MkvFile `json:",omitempty"`
 	Resolution   *string  `json:",omitempty"`
 	// Collections are the media-server collections (by name) the movie
-	// should be added to once ingested.
+	// should be added to once ingested. nil means none have been chosen, so
+	// the movie's series collection is picked automatically; an empty slice
+	// means none were chosen on purpose.
 	Collections []string  `json:",omitempty"`
 	UpdatedAt   time.Time `json:",omitempty"`
 

@@ -99,10 +99,11 @@ func (h CollectionsHandler) renderForm(c echo.Context, action string, wfs []*mod
 	// Once the movie is in the library, show what it's actually in (it may
 	// have been changed on the server directly); until then, show the saved
 	// choices. live tells the POST it's safe to remove unchecked collections.
+	q := library.QueryForWorkflow(wfs[0])
 	selected := storedCollections(wfs)
 	live := false
 	if anyDone(wfs) {
-		names, found, err := h.syncer.Membership(ctx, library.QueryForWorkflow(wfs[0]))
+		names, found, err := h.syncer.Membership(ctx, q)
 		if err != nil {
 			log.Println("error getting collection membership:", err)
 			msg = joinMessages(msg, "Couldn't load current collections: "+err.Error())
@@ -112,7 +113,16 @@ func (h CollectionsHandler) renderForm(c echo.Context, action string, wfs []*mod
 		}
 	}
 
-	return render(c, collectionview.Form(action, collectionOptions(all, selected), selected, live, msg))
+	sugg, err := h.syncer.SuggestSeries(ctx, q, all)
+	if err != nil {
+		log.Println("error identifying series for", q, err)
+	}
+
+	p := buildPicker(all, selected, neverChosen(wfs), sugg)
+	p.Action = action
+	p.Live = live
+	p.Msg = msg
+	return render(c, collectionview.Form(p))
 }
 
 func (h CollectionsHandler) save(c echo.Context, action string, wfs []*model.Workflow) error {
@@ -153,6 +163,52 @@ func anyDone(wfs []*model.Workflow) bool {
 	})
 }
 
+// neverChosen reports whether nobody has saved collections for these
+// workflows yet, in which case the movie's series is selected automatically
+// (matching what happens after ingest).
+func neverChosen(wfs []*model.Workflow) bool {
+	return !slices.ContainsFunc(wfs, func(wf *model.Workflow) bool {
+		return wf.Collections != nil
+	})
+}
+
+// buildPicker decides what the collections picker offers and pre-selects.
+// selected is what the movie is already in (live) or was saved with.
+// When autoSelect is set (nothing chosen yet) and the movie's series has
+// exactly one collection, it's pre-checked, since that's the collection the
+// movie is added to after ingest anyway. Ambiguous series collections (e.g.
+// regular and extended editions) are only marked as suggested, and a series
+// with no collection yet is offered as a one-click new collection.
+func buildPicker(all []library.Collection, selected []string, autoSelect bool, sugg *library.Suggestion) collectionview.Picker {
+	current := slices.Clone(selected)
+	selected = slices.Clone(selected)
+	var suggested []string
+	newSeries := ""
+	if sugg != nil {
+		// only badge series collections the movie isn't already in
+		for _, m := range sugg.Matches {
+			if !library.ContainsCollection(selected, m) {
+				suggested = append(suggested, m)
+			}
+		}
+		if autoSelect && len(sugg.Matches) == 1 && !library.ContainsCollection(selected, sugg.Matches[0]) {
+			selected = append(selected, sugg.Matches[0])
+		}
+		if len(sugg.Matches) == 0 && sugg.Series.Name != "" && !library.ContainsCollection(selected, sugg.Series.Name) {
+			newSeries = sugg.Series.Name
+		}
+	}
+	topical, series := splitCollections(all, selected)
+	return collectionview.Picker{
+		Topical:   topical,
+		Series:    series,
+		Selected:  selected,
+		Current:   current,
+		Suggested: suggested,
+		NewSeries: newSeries,
+	}
+}
+
 // storedCollections is the union of the collections saved on wfs.
 func storedCollections(wfs []*model.Workflow) []string {
 	names := make([]string, 0)
@@ -162,11 +218,25 @@ func storedCollections(wfs []*model.Workflow) []string {
 	return library.SortCollections(library.NormalizeCollections(names))
 }
 
-// collectionOptions lists every collection the picker should offer: all the
-// server's collections plus any selected ones that don't exist there yet.
-func collectionOptions(all, selected []string) []string {
-	names := append(slices.Clone(all), selected...)
-	return library.SortCollections(library.NormalizeCollections(names))
+// splitCollections lists every collection the picker should offer, split
+// into topical collections (shown) and release series (tucked away). Selected
+// collections that don't exist on the server yet are new, so topical.
+func splitCollections(all []library.Collection, selected []string) (topical, series []string) {
+	topical = make([]string, 0)
+	series = make([]string, 0)
+	for _, c := range all {
+		if c.Series {
+			series = append(series, c.Name)
+		} else {
+			topical = append(topical, c.Name)
+		}
+	}
+	for _, s := range selected {
+		if !library.ContainsCollection(topical, s) && !library.ContainsCollection(series, s) {
+			topical = append(topical, s)
+		}
+	}
+	return library.SortCollections(library.NormalizeCollections(topical)), library.SortCollections(library.NormalizeCollections(series))
 }
 
 // wantedCollections combines the checked collections with the comma-separated

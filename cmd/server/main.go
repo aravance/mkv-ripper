@@ -64,6 +64,10 @@ func main() {
 		}
 	}
 	syncer := library.NewSyncer(libs...)
+	if cfg.Tmdb != nil && cfg.Tmdb.Apikey != "" {
+		log.Println("series lookup: tmdb")
+		syncer.Lookup = library.NewTmdb(cfg.Tmdb.Apikey)
+	}
 
 	if logfile, err := os.OpenFile(path.Join(cfg.Log, "mkv.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)

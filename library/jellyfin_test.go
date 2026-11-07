@@ -33,13 +33,13 @@ func newFakeJellyfin(t *testing.T) (*fakeJellyfin, *Jellyfin) {
 	f := &fakeJellyfin{
 		t: t,
 		movies: []jfItem{
-			{Id: "m1", Name: "Back to the Future", ProductionYear: 1985, ProviderIds: map[string]string{"Imdb": "tt0088763", "Tmdb": "105"}},
+			{Id: "m1", Name: "Back to the Future", ProductionYear: 1985, ProviderIds: map[string]string{"Imdb": "tt0088763", "Tmdb": "105", "TmdbCollection": "264"}},
 			{Id: "m2", Name: "Harry Potter and the Philosopher's Stone", ProductionYear: 2001, ProviderIds: map[string]string{"Imdb": "tt0241527"}},
 			{Id: "m3", Name: "13 Going on 30", ProductionYear: 2004, ProviderIds: map[string]string{"Imdb": "tt0337563"}},
 		},
 		sets: []jfItem{
-			{Id: "s1", Name: "Back to the Future Collection"},
-			{Id: "s2", Name: "Kids Movies"},
+			{Id: "s1", Name: "Back to the Future Collection", ProviderIds: map[string]string{"Tmdb": "264"}},
+			{Id: "s2", Name: "Kids Movies", ProviderIds: map[string]string{}},
 		},
 		members: map[string][]string{
 			"s1": {"m1"},
@@ -81,6 +81,12 @@ func (f *fakeJellyfin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodGet && r.URL.Path == "/Items":
 		var items []jfItem
 		switch {
+		case q.Get("Ids") != "":
+			for _, m := range f.movies {
+				if m.Id == q.Get("Ids") {
+					items = append(items, m)
+				}
+			}
 		case q.Get("ParentId") != "":
 			if q.Get("userId") == "" {
 				break // real Jellyfin returns no children without a user
@@ -164,6 +170,21 @@ func TestJellyfinFindMovieNotFound(t *testing.T) {
 	}
 }
 
+func TestJellyfinCollectionsMarksTmdbSetsAsSeries(t *testing.T) {
+	_, jf := newFakeJellyfin(t)
+	got, err := jf.Collections(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Collection{
+		{Name: "Back to the Future Collection", Series: true, SeriesId: "264"},
+		{Name: "Kids Movies", Series: false},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("Collections mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestJellyfinMovieCollections(t *testing.T) {
 	_, jf := newFakeJellyfin(t)
 	got, err := jf.MovieCollections(context.Background(), "m1")
@@ -228,5 +249,19 @@ func TestJellyfinErrorStatus(t *testing.T) {
 	err := jf.Scan(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "401") {
 		t.Fatalf("expected 401 error, got %v", err)
+	}
+}
+
+func TestJellyfinMovieSeriesId(t *testing.T) {
+	_, jf := newFakeJellyfin(t)
+	ctx := context.Background()
+	if got, err := jf.MovieSeriesId(ctx, "m1"); err != nil || got != "264" {
+		t.Fatalf("MovieSeriesId(m1) = %q, %v; want 264", got, err)
+	}
+	if got, err := jf.MovieSeriesId(ctx, "m3"); err != nil || got != "" {
+		t.Fatalf("MovieSeriesId(m3) = %q, %v; want empty", got, err)
+	}
+	if _, err := jf.MovieSeriesId(ctx, "nope"); err != ErrNotFound {
+		t.Fatalf("MovieSeriesId(nope) err = %v, want ErrNotFound", err)
 	}
 }

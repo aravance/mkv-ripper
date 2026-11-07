@@ -25,6 +25,12 @@ type TargetConfig struct {
 	UseMovieDir bool
 }
 
+type TmdbConfig struct {
+	// Apikey is a TMDb v3 API key or v4 read access token, used to find
+	// which series a movie belongs to before it's ripped.
+	Apikey string
+}
+
 // LibraryConfig is a media server to manage collections on after ingest.
 type LibraryConfig struct {
 	// Type is the server kind; only "jellyfin" is supported so far.
@@ -42,6 +48,7 @@ type Config struct {
 	Rip       string
 	Port      int
 	Omdb      *OmdbConfig
+	Tmdb      *TmdbConfig
 	Targets   []TargetConfig
 	Libraries []LibraryConfig
 }

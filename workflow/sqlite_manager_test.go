@@ -314,11 +314,11 @@ func TestSqliteWorkflowManager_CollectionsRoundTrip(t *testing.T) {
 	wfm1, _ := NewSqliteWorkflowManager(db1, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir)
 	withCols := &model.Workflow{DiscId: "d1", TitleId: 0, Label: "L", OriginalName: "a", Status: model.StatusDone, Collections: []string{"Kids Movies", "Disney"}}
 	without := &model.Workflow{DiscId: "d2", TitleId: 0, Label: "L", OriginalName: "b", Status: model.StatusDone}
-	if err := wfm1.Save(withCols); err != nil {
-		t.Fatal(err)
-	}
-	if err := wfm1.Save(without); err != nil {
-		t.Fatal(err)
+	chosenNone := &model.Workflow{DiscId: "d3", TitleId: 0, Label: "L", OriginalName: "c", Status: model.StatusDone, Collections: []string{}}
+	for _, wf := range []*model.Workflow{withCols, without, chosenNone} {
+		if err := wfm1.Save(wf); err != nil {
+			t.Fatal(err)
+		}
 	}
 	db1.Close()
 
@@ -330,5 +330,9 @@ func TestSqliteWorkflowManager_CollectionsRoundTrip(t *testing.T) {
 	}
 	if got := wfm2.GetWorkflow("d2", 0).Collections; got != nil {
 		t.Fatalf("expected nil collections, got %v", got)
+	}
+	// an empty list (chose none) must stay distinct from nil (never chosen)
+	if got := wfm2.GetWorkflow("d3", 0).Collections; got == nil || len(got) != 0 {
+		t.Fatalf("expected empty non-nil collections, got %#v", got)
 	}
 }

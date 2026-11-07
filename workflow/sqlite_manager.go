@@ -132,8 +132,9 @@ func sqlitePersist(db *sql.DB, w *model.Workflow) error {
 		fileJson = &s
 	}
 
+	// keep nil (never chosen) distinct from empty (chosen none)
 	var collectionsJson *string
-	if len(w.Collections) > 0 {
+	if w.Collections != nil {
 		b, err := json.Marshal(w.Collections)
 		if err != nil {
 			return err
