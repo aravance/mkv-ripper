@@ -55,6 +55,10 @@ func main() {
 	libs := make([]library.Library, 0, len(cfg.Libraries))
 	for _, l := range cfg.Libraries {
 		// don't log l itself, it contains the token
+		if l.Url == "" || l.Token == "" {
+			log.Println("library is missing url or token, skipping:", l.Type, l.Url)
+			continue
+		}
 		switch strings.ToLower(l.Type) {
 		case "jellyfin":
 			log.Println("library: jellyfin", l.Url)

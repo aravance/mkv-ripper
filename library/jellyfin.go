@@ -70,9 +70,15 @@ func (j *Jellyfin) do(ctx context.Context, method, path string, query url.Values
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("rejected the API key (%s); check the [[libraries]] token in mkv-ripper.toml", resp.Status)
+	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("jellyfin %s %s: %s: %s", method, path, resp.Status, strings.TrimSpace(string(body)))
+		if msg := strings.TrimSpace(string(body)); msg != "" {
+			return fmt.Errorf("jellyfin %s %s: %s: %s", method, path, resp.Status, msg)
+		}
+		return fmt.Errorf("jellyfin %s %s: %s", method, path, resp.Status)
 	}
 	if out == nil {
 		return nil

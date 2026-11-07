@@ -91,7 +91,15 @@ func (h CollectionsHandler) renderForm(c echo.Context, action string, wfs []*mod
 	defer cancel()
 
 	all, err := h.syncer.AllCollections(ctx)
-	if err != nil {
+	if err != nil && len(all) == 0 {
+		// the library is unreachable (e.g. a bad API key): every other call
+		// would fail the same way, so show the saved choices and one error
+		log.Println("error listing collections:", err)
+		p := buildPicker(nil, storedCollections(wfs), false, nil)
+		p.Action = action
+		p.Msg = joinMessages(msg, "Couldn't load collections: "+err.Error())
+		return render(c, collectionview.Form(p))
+	} else if err != nil {
 		log.Println("error listing collections:", err)
 		msg = joinMessages(msg, "Couldn't load all collections: "+err.Error())
 	}

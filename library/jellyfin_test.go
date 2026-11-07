@@ -247,8 +247,11 @@ func TestJellyfinErrorStatus(t *testing.T) {
 	_, jf := newFakeJellyfin(t)
 	jf.token = "wrong"
 	err := jf.Scan(context.Background())
-	if err == nil || !strings.Contains(err.Error(), "401") {
-		t.Fatalf("expected 401 error, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "401") || !strings.Contains(err.Error(), "API key") {
+		t.Fatalf("expected 401 error naming the API key, got %v", err)
+	}
+	if strings.HasSuffix(err.Error(), ":") || strings.Contains(err.Error(), "wrong") {
+		t.Fatalf("error should be clean and not include the token: %v", err)
 	}
 }
 
