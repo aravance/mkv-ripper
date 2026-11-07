@@ -3,6 +3,7 @@ package movieview
 import (
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
+	"github.com/aravance/mkv-ripper/view/collection"
 	"github.com/aravance/mkv-ripper/view/layout"
 	"github.com/eefret/gomdb"
 )
@@ -30,6 +31,9 @@ templ Page(m *gomdb.MovieResult, group *model.MovieGroup) {
 					}
 				}
 			</div>
+			if group.ImdbId != nil {
+				@collectionview.Loader(util.MovieUrl(*group.ImdbId, "collections"))
+			}
 		</main>
 	}
 }

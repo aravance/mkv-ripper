@@ -29,12 +29,15 @@ type Workflow struct {
 	Label        string
 	OriginalName string
 	Status       WorkflowStatus
-	ImdbId       *string   `json:",omitempty"`
-	Name         *string   `json:",omitempty"`
-	Year         *string   `json:",omitempty"`
-	File         *MkvFile  `json:",omitempty"`
-	Resolution   *string   `json:",omitempty"`
-	UpdatedAt    time.Time `json:",omitempty"`
+	ImdbId       *string  `json:",omitempty"`
+	Name         *string  `json:",omitempty"`
+	Year         *string  `json:",omitempty"`
+	File         *MkvFile `json:",omitempty"`
+	Resolution   *string  `json:",omitempty"`
+	// Collections are the media-server collections (by name) the movie
+	// should be added to once ingested.
+	Collections []string  `json:",omitempty"`
+	UpdatedAt   time.Time `json:",omitempty"`
 
 	MkvStatus *makemkv.Status `json:"-"`
 }

@@ -25,13 +25,25 @@ type TargetConfig struct {
 	UseMovieDir bool
 }
 
+// LibraryConfig is a media server to manage collections on after ingest.
+type LibraryConfig struct {
+	// Type is the server kind; only "jellyfin" is supported so far.
+	Type  string
+	Url   string
+	Token string
+	// User optionally names the server user for user-scoped queries;
+	// defaults to the first administrator.
+	User string
+}
+
 type Config struct {
-	Data    string
-	Log     string
-	Rip     string
-	Port    int
-	Omdb    *OmdbConfig
-	Targets []TargetConfig
+	Data      string
+	Log       string
+	Rip       string
+	Port      int
+	Omdb      *OmdbConfig
+	Targets   []TargetConfig
+	Libraries []LibraryConfig
 }
 
 func ParseConfigFile(file string) Config {
@@ -39,6 +51,7 @@ func ParseConfigFile(file string) Config {
 	if b, err := os.ReadFile(file); err != nil {
 		fmt.Fprintf(os.Stderr, "error parsing %s: %v\n", file, err)
 		config.Targets = make([]TargetConfig, 0)
+		config.Libraries = make([]LibraryConfig, 0)
 	} else {
 		parseConfigBytes(&config, b)
 	}
@@ -61,6 +74,9 @@ func parseConfigBytes(config *Config, b []byte) {
 	}
 	if config.Targets == nil {
 		config.Targets = make([]TargetConfig, 0)
+	}
+	if config.Libraries == nil {
+		config.Libraries = make([]LibraryConfig, 0)
 	}
 	for i := range config.Targets {
 		if config.Targets[i].Shafile == "" {

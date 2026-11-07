@@ -1,0 +1,54 @@
+package collectionview
+
+import (
+	"fmt"
+
+	"github.com/aravance/mkv-ripper/library"
+)
+
+// Loader is a placeholder that swaps itself for the collections Form once
+// it loads, so rendering the page doesn't wait on the media server.
+templ Loader(url string) {
+	<div hx-get={ url } hx-trigger="load" hx-swap="outerHTML" class="mt-3">
+		<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+		<span class="fw-light">Loading collections…</span>
+	</div>
+}
+
+templ Form(action string, options []string, selected []string, live bool, msg string) {
+	<form hx-post={ action } hx-swap="outerHTML" class="mt-3">
+		<h4>Collections</h4>
+		if live {
+			<input type="hidden" name="live" value="true"/>
+		}
+		for i, name := range options {
+			<div class="form-check">
+				<input
+					class="form-check-input"
+					type="checkbox"
+					name="collection"
+					value={ name }
+					id={ fmt.Sprintf("collection-%d", i) }
+					checked?={ library.ContainsCollection(selected, name) }
+				/>
+				<label class="form-check-label" for={ fmt.Sprintf("collection-%d", i) }>{ name }</label>
+			</div>
+		}
+		<div class="input-group mt-2">
+			<input
+				type="text"
+				class="form-control"
+				name="new"
+				placeholder="New collection"
+				aria-label="New collection"
+			/>
+			<button type="submit" class="btn btn-primary">
+				<span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
+				Save
+			</button>
+		</div>
+		if msg != "" {
+			<div class="form-text">{ msg }</div>
+		}
+	</form>
+}

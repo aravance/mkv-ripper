@@ -4,3 +4,4 @@
 *_templ.go
 .gradle
 mkv-ripper.toml
+*.token

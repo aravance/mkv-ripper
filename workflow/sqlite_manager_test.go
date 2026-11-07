@@ -305,3 +305,30 @@ func TestSqliteWorkflowManager_Clean(t *testing.T) {
 func writeFile(path string) error {
 	return os.WriteFile(path, []byte("data"), 0644)
 }
+
+func TestSqliteWorkflowManager_CollectionsRoundTrip(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := tmpDir + "/test.db"
+
+	db1, _ := sql.Open("sqlite", dbPath)
+	wfm1, _ := NewSqliteWorkflowManager(db1, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir)
+	withCols := &model.Workflow{DiscId: "d1", TitleId: 0, Label: "L", OriginalName: "a", Status: model.StatusDone, Collections: []string{"Kids Movies", "Disney"}}
+	without := &model.Workflow{DiscId: "d2", TitleId: 0, Label: "L", OriginalName: "b", Status: model.StatusDone}
+	if err := wfm1.Save(withCols); err != nil {
+		t.Fatal(err)
+	}
+	if err := wfm1.Save(without); err != nil {
+		t.Fatal(err)
+	}
+	db1.Close()
+
+	db2, _ := sql.Open("sqlite", dbPath)
+	defer db2.Close()
+	wfm2, _ := NewSqliteWorkflowManager(db2, &mockDriveManager{}, &mockDiscDB{data: map[string]*makemkv.DiscInfo{}}, nil, tmpDir)
+	if diff := cmp.Diff([]string{"Kids Movies", "Disney"}, wfm2.GetWorkflow("d1", 0).Collections); diff != "" {
+		t.Fatalf("collections mismatch (-want +got):\n%s", diff)
+	}
+	if got := wfm2.GetWorkflow("d2", 0).Collections; got != nil {
+		t.Fatalf("expected nil collections, got %v", got)
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
+	"github.com/aravance/mkv-ripper/view/collection"
 	"github.com/aravance/mkv-ripper/view/layout"
 	"github.com/aravance/mkv-ripper/view/movie"
 	"github.com/eefret/gomdb"
@@ -33,6 +34,7 @@ templ Show(wf *model.Workflow, disc *drive.Disc, mov *gomdb.MovieResult) {
 			<div id="status">
 				@Status(wf)
 			</div>
+			@collectionview.Loader(util.WorkflowUrl(wf.DiscId, wf.TitleId, "collections"))
 			if disc != nil && wf != nil && disc.Uuid == wf.DiscId {
 				if wf.Status == model.StatusError || wf.Status == model.StatusStart || wf.Status == model.StatusDone {
 					<form id="rip" action={ templ.SafeURL(util.WorkflowUrl(wf.DiscId, wf.TitleId, "rip")) } method="get">

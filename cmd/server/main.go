@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"slices"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"github.com/aravance/mkv-ripper/drive"
 	"github.com/aravance/mkv-ripper/handler"
 	"github.com/aravance/mkv-ripper/ingest"
+	"github.com/aravance/mkv-ripper/library"
 	"github.com/aravance/mkv-ripper/model"
 	"github.com/aravance/mkv-ripper/util"
 	"github.com/aravance/mkv-ripper/workflow"
@@ -48,6 +51,19 @@ func main() {
 			UseMovieDir: t.UseMovieDir,
 		}
 	}
+
+	libs := make([]library.Library, 0, len(cfg.Libraries))
+	for _, l := range cfg.Libraries {
+		// don't log l itself, it contains the token
+		switch strings.ToLower(l.Type) {
+		case "jellyfin":
+			log.Println("library: jellyfin", l.Url)
+			libs = append(libs, library.NewJellyfin(l.Url, l.Token, l.User))
+		default:
+			log.Println("unsupported library type, skipping:", l.Type, l.Url)
+		}
+	}
+	syncer := library.NewSyncer(libs...)
 
 	if logfile, err := os.OpenFile(path.Join(cfg.Log, "mkv.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664); err != nil {
 		log.Fatalln("failed to open log file", err)
@@ -83,6 +99,17 @@ func main() {
 
 	migrateJsonWorkflows(path.Join(cfg.Data, "workflows.json"), wfman)
 
+	if syncer.Enabled() {
+		wfman.OnIngested(func(wf *model.Workflow) {
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+			defer cancel()
+			q := library.QueryForWorkflow(wf)
+			if err := syncer.AfterIngest(ctx, q, slices.Clone(wf.Collections)); err != nil {
+				log.Println("error updating library collections for", q, err)
+			}
+		})
+	}
+
 	driveman.Start()
 	defer driveman.Stop()
 
@@ -113,16 +140,21 @@ func main() {
 	driveHandler := handler.NewDriveHandler(discdb, driveman, wfman, omdbapi)
 	workflowHandler := handler.NewWorkflowHandler(wfman, driveman, discdb, omdbapi)
 	omdbHandler := handler.NewOmdbHandler(omdbapi)
+	collectionsHandler := handler.NewCollectionsHandler(wfman, syncer)
 
 	server.GET("/", indexHandler.GetIndex)
 	server.GET("/history", indexHandler.GetHistory)
 	server.GET("/movie/:imdbId", indexHandler.GetMovie)
+	server.GET("/movie/:imdbId/collections", collectionsHandler.GetMovieCollections)
+	server.POST("/movie/:imdbId/collections", collectionsHandler.PostMovieCollections)
 	server.GET("/drive", driveHandler.GetDrive)
 	server.GET("/drive/status", driveHandler.GetDriveStatus)
 	server.GET("/disc/:discId/title/:titleId", workflowHandler.GetWorkflow)
 	server.POST("/disc/:discId/title/:titleId", workflowHandler.PostWorkflow)
 	server.GET("/disc/:discId/title/:titleId/edit", workflowHandler.EditWorkflow)
 	server.GET("/disc/:discId/title/:titleId/status", workflowHandler.Status)
+	server.GET("/disc/:discId/title/:titleId/collections", collectionsHandler.GetWorkflowCollections)
+	server.POST("/disc/:discId/title/:titleId/collections", collectionsHandler.PostWorkflowCollections)
 	// TODO make this a post
 	server.GET("/disc/:discId/title/:titleId/rip", workflowHandler.RipTitle)
 	server.GET("/omdb/search", omdbHandler.Search)

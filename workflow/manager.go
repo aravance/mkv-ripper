@@ -24,6 +24,9 @@ type WorkflowManager interface {
 	GetAllWorkflows() []*model.Workflow
 	Save(*model.Workflow) error
 	Clean(*model.Workflow) error
+	// OnIngested registers a callback run (in its own goroutine) after a
+	// workflow finishes ingesting, e.g. to update media-server collections.
+	OnIngested(func(*model.Workflow))
 }
 
 func (m *workflowManager) Start(wf *model.Workflow) error {
@@ -120,17 +123,25 @@ func (m *workflowManager) Ingest(wf *model.Workflow) error {
 	m.Clean(wf)
 	wf.Status = model.StatusDone
 	m.Save(wf)
+	if m.onIngested != nil {
+		go m.onIngested(wf)
+	}
 	return nil
 }
 
+func (m *workflowManager) OnIngested(fn func(*model.Workflow)) {
+	m.onIngested = fn
+}
+
 type workflowManager struct {
-	workflows map[string]map[int]*model.Workflow
-	driveman  drive.DriveManager
-	discdb    drive.DiscDatabase
-	targets   []ingest.Target
-	outdir    string
-	file      string
-	persistFn func(*workflowManager, *model.Workflow) error
+	workflows  map[string]map[int]*model.Workflow
+	driveman   drive.DriveManager
+	discdb     drive.DiscDatabase
+	targets    []ingest.Target
+	outdir     string
+	file       string
+	persistFn  func(*workflowManager, *model.Workflow) error
+	onIngested func(*model.Workflow)
 }
 
 func newWorkflow(discId string, titleId int, label string, name string) *model.Workflow {

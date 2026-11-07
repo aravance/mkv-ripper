@@ -30,6 +30,7 @@ func NewSqliteWorkflowManager(
 		file_json TEXT,
 		resolution TEXT,
 		updated_at TEXT,
+		collections_json TEXT,
 		PRIMARY KEY(disc_id, title_id)
 	)`)
 	if err != nil {
@@ -42,10 +43,13 @@ func NewSqliteWorkflowManager(
 	if err := addColumnIfMissing(db, "workflows", "updated_at", "TEXT"); err != nil {
 		return nil, err
 	}
+	if err := addColumnIfMissing(db, "workflows", "collections_json", "TEXT"); err != nil {
+		return nil, err
+	}
 
 	workflows := make(map[string]map[int]*model.Workflow)
 
-	rows, err := db.Query("SELECT disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json, resolution, updated_at FROM workflows")
+	rows, err := db.Query("SELECT disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json, resolution, updated_at, collections_json FROM workflows")
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +58,9 @@ func NewSqliteWorkflowManager(
 	for rows.Next() {
 		var discId, label, originalName, status string
 		var titleId int
-		var imdbId, name, year, fileJson, resolution, updatedAt sql.NullString
+		var imdbId, name, year, fileJson, resolution, updatedAt, collectionsJson sql.NullString
 
-		if err := rows.Scan(&discId, &titleId, &label, &originalName, &status, &imdbId, &name, &year, &fileJson, &resolution, &updatedAt); err != nil {
+		if err := rows.Scan(&discId, &titleId, &label, &originalName, &status, &imdbId, &name, &year, &fileJson, &resolution, &updatedAt, &collectionsJson); err != nil {
 			log.Println("error scanning workflow row:", err)
 			continue
 		}
@@ -93,6 +97,11 @@ func NewSqliteWorkflowManager(
 				wf.UpdatedAt = t
 			}
 		}
+		if collectionsJson.Valid {
+			if err := json.Unmarshal([]byte(collectionsJson.String), &wf.Collections); err != nil {
+				log.Println("error unmarshaling collections_json:", err)
+			}
+		}
 
 		titleWfs := getOrCreate(workflows, discId)
 		titleWfs[titleId] = wf
@@ -123,11 +132,21 @@ func sqlitePersist(db *sql.DB, w *model.Workflow) error {
 		fileJson = &s
 	}
 
+	var collectionsJson *string
+	if len(w.Collections) > 0 {
+		b, err := json.Marshal(w.Collections)
+		if err != nil {
+			return err
+		}
+		s := string(b)
+		collectionsJson = &s
+	}
+
 	updatedAt := w.UpdatedAt.Format(time.RFC3339Nano)
 
 	_, err := db.Exec(
-		`INSERT INTO workflows (disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json, resolution, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO workflows (disc_id, title_id, label, original_name, status, imdb_id, name, year, file_json, resolution, updated_at, collections_json)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(disc_id, title_id) DO UPDATE SET
 			label = excluded.label,
 			original_name = excluded.original_name,
@@ -137,9 +156,10 @@ func sqlitePersist(db *sql.DB, w *model.Workflow) error {
 			year = excluded.year,
 			file_json = excluded.file_json,
 			resolution = excluded.resolution,
-			updated_at = excluded.updated_at`,
+			updated_at = excluded.updated_at,
+			collections_json = excluded.collections_json`,
 		w.DiscId, w.TitleId, w.Label, w.OriginalName, string(w.Status),
-		w.ImdbId, w.Name, w.Year, fileJson, w.Resolution, updatedAt,
+		w.ImdbId, w.Name, w.Year, fileJson, w.Resolution, updatedAt, collectionsJson,
 	)
 	return err
 }
