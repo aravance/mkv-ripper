@@ -34,21 +34,74 @@ templ Form(action string, options []string, selected []string, live bool, msg st
 				<label class="form-check-label" for={ fmt.Sprintf("collection-%d", i) }>{ name }</label>
 			</div>
 		}
-		<div class="input-group mt-2">
+		<div class="new-collections d-flex flex-wrap gap-1 mt-2" aria-live="polite"></div>
+		<div class="form-floating mt-2">
 			<input
 				type="text"
 				class="form-control"
+				id="new-collection"
 				name="new"
 				placeholder="New collection"
-				aria-label="New collection"
+				aria-describedby="new-collection-help"
+				enterkeyhint="enter"
+				autocomplete="off"
+				onkeydown="collectionKeydown(event)"
 			/>
-			<button type="submit" class="btn btn-primary">
-				<span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
-				Save
-			</button>
+			<label for="new-collection">New collection</label>
 		</div>
+		<div id="new-collection-help" class="form-text">Press Enter to add it to the list.</div>
+		<button type="submit" class="btn btn-primary w-100 mt-3 position-relative">
+			Save collections
+			<span class="spinner-border spinner-border-sm htmx-indicator position-absolute top-50 end-0 translate-middle-y me-3" role="status" aria-hidden="true"></span>
+		</button>
 		if msg != "" {
 			<div class="form-text">{ msg }</div>
 		}
+		@pillScript()
 	</form>
+}
+
+// pillScript turns typed collection names into removable pills. Each pill
+// carries a hidden "collection" input, so saving submits pills exactly like
+// checked boxes. Text still in the box on save is sent as "new", which the
+// server also accepts, so nothing typed is lost (and it works without JS).
+templ pillScript() {
+	<script>
+	function collectionKeydown(e) {
+		if (e.isComposing || (e.key !== "Enter" && e.key !== ",")) return;
+		e.preventDefault();
+		addCollectionPills(e.target);
+	}
+
+	function addCollectionPills(input) {
+		const form = input.closest("form");
+		const pills = form.querySelector(".new-collections");
+		for (const raw of input.value.split(",")) {
+			const name = raw.trim();
+			if (!name) continue;
+			const existing = Array.from(form.querySelectorAll("input[name=collection]"))
+				.find((i) => i.value.toLowerCase() === name.toLowerCase());
+			if (existing) {
+				if (existing.type === "checkbox") existing.checked = true;
+				continue;
+			}
+
+			const pill = document.createElement("span");
+			pill.className = "badge rounded-pill text-bg-primary d-inline-flex align-items-center fs-6 fw-normal py-2 ps-3 pe-2";
+			const hidden = document.createElement("input");
+			hidden.type = "hidden";
+			hidden.name = "collection";
+			hidden.value = name;
+			const remove = document.createElement("button");
+			remove.type = "button";
+			remove.className = "btn-close btn-close-white ms-2";
+			remove.style.fontSize = "0.6em";
+			remove.setAttribute("aria-label", "Remove " + name);
+			remove.addEventListener("click", () => pill.remove());
+			pill.append(document.createTextNode(name), hidden, remove);
+			pills.append(pill);
+		}
+		input.value = "";
+	}
+	</script>
 }
