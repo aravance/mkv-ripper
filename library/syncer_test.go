@@ -346,3 +346,24 @@ func TestSyncerAfterIngestUsesLookupWhenLibraryLacksSeries(t *testing.T) {
 		t.Fatalf("expected series collection, got %v", got)
 	}
 }
+
+func TestSyncerSuggestSeriesWithoutLookup(t *testing.T) {
+	lib := seriesLibrary()
+	s := NewSyncer(lib) // no TMDb configured
+	all, _ := s.AllCollections(context.Background())
+
+	got, err := s.SuggestSeries(context.Background(), MovieQuery{ImdbId: "tt1"}, all)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &Suggestion{Series: Series{TmdbId: "264"}, Matches: []string{"Back to the Future Collection"}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("suggestion mismatch (-want +got):\n%s", diff)
+	}
+
+	// not in any library yet (e.g. before the rip): no suggestion, no error
+	got, err = s.SuggestSeries(context.Background(), MovieQuery{ImdbId: "tt404"}, all)
+	if err != nil || got != nil {
+		t.Fatalf("SuggestSeries before import = %+v, %v; want nil, nil", got, err)
+	}
+}
